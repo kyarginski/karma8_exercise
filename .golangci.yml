@@ -1,0 +1,26 @@
+run:
+  go: "1.21"
+
+linters:
+  enable:
+    - govet
+    - gofmt
+#    - gofumpt
+    - goimports
+    - gosimple
+    - goprintffuncname
+    - ineffassign
+    - whitespace
+    - gocritic
+    - exportloopref
+    - prealloc
+    - promlinter
+    - errcheck
+    - typecheck
+    - staticcheck
+    - bodyclose
+    - unused
+    - gocyclo
+    - unconvert
+    - misspell
+    - revive

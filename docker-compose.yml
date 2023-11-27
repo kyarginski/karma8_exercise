@@ -1,0 +1,42 @@
+version: '3.9'
+
+networks:
+  karma8-net:
+
+services:
+  karma8-db:
+    build:
+      context: ./deploy
+      dockerfile: db.Dockerfile
+    container_name: karma8-db
+    user: root  # needed because windows hates me
+    volumes:
+      - karma8-db:/var/lib/postgresql/data
+    networks:
+      - karma8-net
+    ports:
+      - "25432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  service_a:
+    build:
+      context: .
+      dockerfile: service_a.Dockerfile
+    container_name: service_a
+    networks:
+      - karma8-net
+    ports:
+      - "8260:8260"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - karma8-db
+    environment:
+      - BLOG_CONFIG_PATH=config/blog/prod.yaml
+
+volumes:
+  data_source:
+    driver: local

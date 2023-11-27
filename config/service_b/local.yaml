@@ -1,0 +1,5 @@
+env: "local"
+version: "1.0.0"
+db_connect: "root:password@tcp(localhost:3306)/myblog"
+#db_connect: "root:password@tcp(:3306)/myblog"
+port: 8085
