@@ -1,4 +1,4 @@
 env: "prod"
 version: "1.0.0"
-db_connect: "redis://localhost:6379?protocol=3"
+db_connect: "redis://host.docker.internal:6379?protocol=3"
 port: 8261

@@ -15,5 +15,8 @@ COMMENT ON COLUMN bucket.active_sign IS 'Is bucket active?';
 INSERT INTO bucket (id, address, active_sign) VALUES
 (1, 'http://localhost:8261', true),
 (2, 'http://localhost:8262', true),
-(3, 'http://localhost:8263', true);
+(3, 'http://localhost:8263', true),
+(4, 'http://localhost:8264', true),
+(5, 'http://localhost:8265', true),
+(6, 'http://localhost:8266', true);
 

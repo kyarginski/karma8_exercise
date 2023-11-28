@@ -21,6 +21,18 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
 
+  karma8-redis:
+    build:
+      context: ./deploy
+      dockerfile: redis.Dockerfile
+    container_name: karma8-redis
+    volumes:
+      - karma8-redis:/var/lib/redis/data
+    networks:
+      - karma8-net
+    ports:
+      - "6379:6379"
+
   service_a:
     build:
       context: .
@@ -35,8 +47,116 @@ services:
     depends_on:
       - karma8-postgres
     environment:
-      - BLOG_CONFIG_PATH=config/blog/prod.yaml
+      - SERVICE_A_CONFIG_PATH=config/service_a/prod.yaml
+
+  service_b_1:
+    build:
+      context: .
+      dockerfile: service_b.Dockerfile
+    container_name: service_b_1
+    networks:
+      - karma8-net
+    ports:
+      - "8261:8261"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - karma8-redis
+    environment:
+      - SERVICE_B_REDIS_DB=1
+      - SERVICE_B_PORT=8261
+      - SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml
+
+  service_b_2:
+    build:
+      context: .
+      dockerfile: service_b.Dockerfile
+    container_name: service_b_2
+    networks:
+      - karma8-net
+    ports:
+      - "8262:8262"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - karma8-redis
+    environment:
+      - SERVICE_B_REDIS_DB=2
+      - SERVICE_B_PORT=8262
+      - SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml
+
+  service_b_3:
+    build:
+      context: .
+      dockerfile: service_b.Dockerfile
+    container_name: service_b_3
+    networks:
+      - karma8-net
+    ports:
+      - "8263:8263"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - karma8-redis
+    environment:
+      - SERVICE_B_REDIS_DB=3
+      - SERVICE_B_PORT=8263
+      - SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml
+
+  service_b_4:
+    build:
+      context: .
+      dockerfile: service_b.Dockerfile
+    container_name: service_b_4
+    networks:
+      - karma8-net
+    ports:
+      - "8264:8264"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - karma8-redis
+    environment:
+      - SERVICE_B_REDIS_DB=4
+      - SERVICE_B_PORT=8264
+      - SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml
+
+  service_b_5:
+    build:
+      context: .
+      dockerfile: service_b.Dockerfile
+    container_name: service_b_5
+    networks:
+      - karma8-net
+    ports:
+      - "8265:8265"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - karma8-redis
+    environment:
+      - SERVICE_B_REDIS_DB=5
+      - SERVICE_B_PORT=8265
+      - SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml
+
+  service_b_6:
+    build:
+      context: .
+      dockerfile: service_b.Dockerfile
+    container_name: service_b_6
+    networks:
+      - karma8-net
+    ports:
+      - "8266:8266"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - karma8-redis
+    environment:
+      - SERVICE_B_REDIS_DB=6
+      - SERVICE_B_PORT=8266
+      - SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml
 
 volumes:
-  data_source:
-    driver: local
+  karma8-postgres:
+  karma8-redis:

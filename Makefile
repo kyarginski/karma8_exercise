@@ -1,4 +1,3 @@
-GO=go
 GO111MODULE := auto
 export GO111MODULE
 
@@ -6,13 +5,13 @@ lint:
 	golangci-lint run ./...
 
 test:
-	$(GO) test -count=1 -race ./...
+	go test -count=1 -race ./...
 
-build_blog:
-	$(GO) build -tags musl -ldflags="-w -extldflags '-static' -X 'main.Version=$(VERSION)'" -o blog check24/cmd/blog
+build_service_a:
+	go build -tags musl -ldflags="-w -extldflags '-static' -X 'main.Version=$(VERSION)'" -o service_a karma8/cmd/service_a
 
-build_admin:
-	$(GO) build -tags musl -ldflags="-w -extldflags '-static' -X 'main.Version=$(VERSION)'" -o admin check24/cmd/admin
+build_service_b:
+	go build -tags musl -ldflags="-w -extldflags '-static' -X 'main.Version=$(VERSION)'" -o service_b karma8/cmd/service_b
 
 check-swagger:
 	which swagger

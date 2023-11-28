@@ -9,8 +9,8 @@ RUN apk update && apk add gcc make librdkafka-dev openssl-libs-static zlib-stati
 WORKDIR /app
 COPY . /app
 ENV GO111MODULE=on
-ENV SERVICE_A_CONFIG_PATH=config/service_a/prod.yaml
-RUN make build_service_a
+ENV SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml
+RUN make build_service_b
 
 # Execution Phase
 FROM alpine:latest
@@ -25,7 +25,7 @@ RUN chmod -R 777 /app
 USER app
 
 # Expose port to the outside world
-EXPOSE 8260
+# EXPOSE 8261
 
 # Command to run the executable
-CMD ["./service_a"]
+CMD ["./service_b"]
