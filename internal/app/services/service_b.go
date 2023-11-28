@@ -75,7 +75,7 @@ func (s *ServiceB) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	return parsedUUID, nil
 }
 
-func (s *ServiceB) DeleteFileItem(id uuid.UUID) error {
+func (s *ServiceB) DeleteFileItem(_ uuid.UUID) error {
 	return nil
 }
 

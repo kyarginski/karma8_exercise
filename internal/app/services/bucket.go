@@ -1,8 +1,13 @@
 package services
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
+	"sync"
 	"time"
 
 	"karma8/internal/models"
@@ -10,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const requestPath = "/api/file"
+const requestPath = "/api/filepart"
 
 type Bucket struct {
 	log    *slog.Logger
@@ -30,18 +35,6 @@ func NewBucket(log *slog.Logger, path string, id int64) *Bucket {
 	}
 }
 
-func (s *Bucket) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
-	return nil, nil
-}
-
-func (s *Bucket) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
-	return uuid.UUID{}, nil
-}
-
-func (s *Bucket) DeleteFileItem(id uuid.UUID) error {
-	return nil
-}
-
 func (s *Bucket) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	result := make([]*models.ServerBucketInfo, 0)
 	result = append(result, &models.ServerBucketInfo{
@@ -50,4 +43,76 @@ func (s *Bucket) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	})
 
 	return result, nil
+}
+
+func (s *Bucket) SendToBucket(item *models.BucketItem, id uuid.UUID) error {
+	// Создаем буфер для записи данных формы
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	// Добавляем поле ID.
+	_ = writer.WriteField("id", id.String())
+
+	// Добавляем бинарные данные в теле формы.
+	part, err := writer.CreateFormFile("file", "file")
+	if err != nil {
+		return err
+	}
+	_, err = part.Write(item.Source)
+	if err != nil {
+		return err
+	}
+	// Закрываем тело формы
+	_ = writer.Close()
+
+	// Создаем HTTP запрос с методом PUT и устанавливаем заголовки
+	request, err := http.NewRequest("PUT", s.path, &body)
+	if err != nil {
+		return err
+	}
+
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// Отправляем запрос
+	response, err := s.client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	// Обрабатываем ошибочный ответ.
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("error in SendToBucket: %d", response.StatusCode)
+	}
+
+	return nil
+}
+
+func (s *Bucket) GetFromBucket(id uuid.UUID, results map[int64][]byte, mutex *sync.Mutex) {
+	url := fmt.Sprintf(s.path+"/%s", id)
+
+	response, err := http.Get(url)
+	if err != nil {
+		// Обработка ошибки, если необходимо.
+		return
+	}
+	defer response.Body.Close()
+
+	// Проверяем код ответа.
+	if response.StatusCode != http.StatusOK {
+		// Обработка ошибочного статуса, если необходимо.
+		return
+	}
+
+	// Читаем данные из тела ответа.
+	data, err := io.ReadAll(response.Body)
+	if err != nil {
+		// Обработка ошибки чтения данных, если необходимо.
+		return
+	}
+
+	// Сохраняем данные в map с использованием мьютекса.
+	mutex.Lock()
+	results[s.ID] = data
+	mutex.Unlock()
 }

@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 	"log/slog"
-	"path/filepath"
+	"sync"
 	"time"
 
 	"karma8/internal/app/processes"
@@ -11,6 +11,7 @@ import (
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 type ServiceA struct {
@@ -52,28 +53,37 @@ func (s *ServiceA) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Проверяем наличие файла в кэше.
-	fileName := s.storage.GetCacheItem(metadata.Checksum)
-	if fileName != "" {
-		// Если файл есть в кэше, то возвращаем его.
-		data, err := processes.ReadFile(fileName)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+	/*
+		// Проверяем наличие файла в кэше.
+		fileName := s.storage.GetCacheItem(metadata.Checksum)
+		if fileName != "" {
+			// Если файл есть в кэше, то возвращаем его.
+			data, err := processes.ReadFile(fileName)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", op, err)
+			}
+			return &models.FileItem{
+				FileName:        fileName,
+				FileContentType: metadata.ContentType,
+				FileContent:     data,
+			}, nil
 		}
-		return &models.FileItem{
-			FileName:        fileName,
-			FileContentType: metadata.ContentType,
-			FileContent:     data,
-		}, nil
+	*/
+	data, err := s.GetFileFromBuckets(metadata.UUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
-	return nil, nil
+	return &models.FileItem{
+		FileName:        metadata.FileName,
+		FileContentType: metadata.ContentType,
+		FileContent:     data,
+	}, nil
 }
 
 func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	const op = "serviceA.PutFileItem"
 
-	path := filepath.Join(".", processes.PathCache, source.FileName)
+	path := processes.GetFileNameWithPathCache(source.FileName)
 	checksum, err := processes.CalculateChecksum(path)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
@@ -103,10 +113,16 @@ func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
 	}
 
+	// Раскладываем файл по корзинам (buckets).
+	err = s.PutFileIntoBuckets(newID, path)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return newID, nil
 }
 
-func (s *ServiceA) DeleteFileItem(id uuid.UUID) error {
+func (s *ServiceA) DeleteFileItem(_ uuid.UUID) error {
 	return nil
 }
 
@@ -140,4 +156,71 @@ func (s *ServiceA) GetBucketsIDs() []int64 {
 
 func (s *ServiceA) Close() error {
 	return s.storage.Close()
+}
+
+func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
+	const op = "serviceA.PutFileIntoBuckets"
+
+	items, err := processes.SplitFile(path, s.GetBucketsIDs())
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	var eg errgroup.Group
+
+	// Обработка каждого элемента в отдельной горутине.
+	for i, item := range items {
+		item := item // создаем копию переменной item, чтобы избежать замыкания на изменяемой переменной в горутине
+		i := i
+		eg.Go(func() error {
+			s.buckets[i].log.Debug("SendToBucket",
+				"id", id.String(),
+				"bucketID", s.buckets[i].ID,
+				"address", s.buckets[i].path,
+			)
+			return s.buckets[i].SendToBucket(&item, id)
+		})
+	}
+
+	// Ожидание завершения всех горутин и проверка ошибок
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
+	const op = "serviceA.GetFileFromBuckets"
+
+	var eg errgroup.Group
+	var mu sync.Mutex
+	results := make(map[int64][]byte)
+
+	// Запуск горутин для каждого бакета.
+	for i, bucket := range s.buckets {
+		bucket := bucket
+		i := i
+		eg.Go(func() error {
+			s.buckets[i].log.Debug("GetFromBucket",
+				"id", id.String(),
+				"bucketID", s.buckets[i].ID,
+				"address", s.buckets[i].path,
+			)
+			bucket.GetFromBucket(id, results, &mu)
+			return nil
+		})
+	}
+
+	// Ожидание завершения всех горутин и проверка ошибок.
+	if err := eg.Wait(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	// Объединение результатов в нужном порядке.
+	var finalData []byte
+	for _, bucket := range s.buckets {
+		finalData = append(finalData, results[bucket.ID]...)
+	}
+
+	return finalData, nil
 }

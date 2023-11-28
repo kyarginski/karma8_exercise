@@ -16,7 +16,7 @@ type FileItem struct {
 
 // BucketItem - структура для хранения элемента корзины.
 type BucketItem struct {
-	ID     string `json:"id"`
+	ID     int64  `json:"id"`
 	Source []byte `json:"source"`
 }
 

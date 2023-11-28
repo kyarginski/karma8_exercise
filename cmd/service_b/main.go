@@ -43,7 +43,11 @@ func main() {
 }
 
 func run(log *slog.Logger, cfg *config.Config) error {
-	log.Debug("starting db connect ", "connect", cfg.DBConnect)
+	log.Debug("starting db connect ",
+		"connect", cfg.DBConnect,
+		"port", cfg.Port,
+		"redis_db", cfg.RedisDB,
+	)
 
 	application, err := app.NewServiceB(log, cfg.DBConnect, cfg.Port, cfg.RedisDB)
 	defer application.Stop()

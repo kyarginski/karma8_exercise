@@ -44,11 +44,11 @@ export SERVICE_A_CONFIG_PATH=config/service_a/prod.yaml && go run ./cmd/service_
 Нужно запустить несколько экземпляров service_b со своим портом, например:
 
 ```shell
-export SERVICE_B_PORT=8261 && export SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml && go run ./cmd/service_b
+export SERVICE_B_REDIS_DB=1 && export SERVICE_B_PORT=8261 && export SERVICE_B_CONFIG_PATH=config/service_b/local.yaml && go run ./cmd/service_b
 ```
 ```shell
-export SERVICE_B_PORT=8262 && export SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml && go run ./cmd/service_b
+export SERVICE_B_REDIS_DB=2 && export SERVICE_B_PORT=8262 && export SERVICE_B_CONFIG_PATH=config/service_b/local.yaml && go run ./cmd/service_b
 ```
 ```shell
-export SERVICE_B_PORT=8263 && export SERVICE_B_CONFIG_PATH=config/service_b/prod.yaml && go run ./cmd/service_b
+export SERVICE_B_REDIS_DB=3 && export SERVICE_B_PORT=8263 && export SERVICE_B_CONFIG_PATH=config/service_b/local.yaml && go run ./cmd/service_b
 ```

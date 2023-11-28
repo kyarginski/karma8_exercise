@@ -9,7 +9,7 @@ import (
 )
 
 // SplitFile разбивает файл на несколько частей и возвращает массив элементов BucketItem.
-func SplitFile(path string, partsIDs []string) ([]models.BucketItem, error) {
+func SplitFile(path string, partsIDs []int64) ([]models.BucketItem, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err

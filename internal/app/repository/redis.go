@@ -49,23 +49,23 @@ func NewRedis(path string, redisDB int) (*StorageRedis, error) {
 	return &StorageRedis{db: db}, nil
 }
 
-func (s *StorageRedis) PutCacheItem(source *models.CacheItem) error {
+func (s *StorageRedis) PutCacheItem(_ *models.CacheItem) error {
 	return nil
 }
 
-func (s *StorageRedis) GetCacheItem(checksum string) string {
+func (s *StorageRedis) GetCacheItem(_ string) string {
 	return ""
 }
 
-func (s *StorageRedis) GetFileMetadata(id uuid.UUID) (*models.MetadataItem, error) {
+func (s *StorageRedis) GetFileMetadata(_ uuid.UUID) (*models.MetadataItem, error) {
 	return nil, nil
 }
 
-func (s *StorageRedis) PutFileMetadata(source *models.MetadataItem) (uuid.UUID, error) {
+func (s *StorageRedis) PutFileMetadata(_ *models.MetadataItem) (uuid.UUID, error) {
 	return uuid.UUID{}, nil
 }
 
-func (s *StorageRedis) DeleteFileMetadata(id uuid.UUID) error {
+func (s *StorageRedis) DeleteFileMetadata(_ uuid.UUID) error {
 	return nil
 }
 

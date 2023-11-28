@@ -11,11 +11,15 @@ import (
 
 const (
 	pathTemp  = "/tmp"
-	PathCache = "/cache"
+	pathCache = "/cache"
 )
 
+func GetFileNameWithPathCache(filename string) string {
+	return filepath.Join(".", pathCache, filename)
+}
+
 func ReadFile(filename string) ([]byte, error) {
-	filePath := filepath.Join(".", PathCache, filename)
+	filePath := filepath.Join(".", pathCache, filename)
 
 	// Читаем содержимое файла
 	data, err := os.ReadFile(filePath)
@@ -27,13 +31,13 @@ func ReadFile(filename string) ([]byte, error) {
 }
 
 func WriteFile(fileContent []byte, fileName string) (string, error) {
-	path := filepath.Join(".", PathCache)
+	path := filepath.Join(".", pathCache)
 	// Создание директории, если её нет.
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return "", errors.New("failed to create cache directory")
 	}
 
-	// Создание пути для сохранения файла в директории PathCache
+	// Создание пути для сохранения файла в директории pathCache
 	savePath := filepath.Join(path, fileName)
 
 	err := os.WriteFile(savePath, fileContent, 0644)
