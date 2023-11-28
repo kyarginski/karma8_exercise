@@ -19,7 +19,7 @@ func GetFileNameWithPathCache(filename string) string {
 }
 
 func ReadFile(filename string) ([]byte, error) {
-	filePath := filepath.Join(".", pathCache, filename)
+	filePath := GetFileNameWithPathCache(filename)
 
 	// Читаем содержимое файла
 	data, err := os.ReadFile(filePath)
@@ -65,4 +65,12 @@ func CalculateChecksum(filePath string) (string, error) {
 	checksum := hex.EncodeToString(hashInBytes)
 
 	return checksum, nil
+}
+
+func DeleteFile(filename string) error {
+	filePath := GetFileNameWithPathCache(filename)
+
+	os.Remove(filePath)
+
+	return nil
 }

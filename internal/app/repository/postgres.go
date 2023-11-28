@@ -3,7 +3,9 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
+	"karma8/internal/app/processes"
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
@@ -140,6 +142,8 @@ func (s *Storage) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	buckets := make([]*models.ServerBucketInfo, 0)
 
 	for rows.Next() {
@@ -154,4 +158,56 @@ func (s *Storage) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	}
 
 	return buckets, nil
+}
+
+func (s *Storage) GetExpiredCacheFilenames() ([]models.CacheItem, error) {
+	query := "SELECT filename, checksum FROM cache WHERE expired_at <= $1"
+
+	current := time.Now().UTC()
+
+	rows, err := s.db.Query(query, current)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cacheItems := make([]models.CacheItem, 0)
+
+	for rows.Next() {
+		var fileName, checksum string
+
+		if err := rows.Scan(&fileName, &checksum); err != nil {
+			return nil, err
+		}
+
+		cacheItems = append(cacheItems, models.CacheItem{
+			Checksum: checksum,
+			FileName: fileName,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return cacheItems, nil
+}
+
+func (s *Storage) DeleteExpiredCacheFiles(items []models.CacheItem) error {
+	query := "DELETE FROM cache WHERE checksum = $1"
+
+	for _, item := range items {
+		_, err := s.db.Exec(query, item.Checksum)
+		if err != nil {
+			return err
+		}
+
+		// Удаление файла из кэша.
+		err = processes.DeleteFile(item.FileName)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

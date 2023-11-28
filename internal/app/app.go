@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"karma8/internal/app/handler"
 	"karma8/internal/app/services"
@@ -33,6 +34,9 @@ func NewServiceA(
 	router.HandleFunc("/api/file/{id}", handler.GetFileItem(srv)).Methods("GET")
 	router.HandleFunc("/api/file", handler.PutFileItem(srv)).Methods("PUT")
 	server := web.New(log, port, router)
+
+	// Запуск фоновой задачи по очистке кэша.
+	go srv.ClearCache(3 * time.Minute) // TODO: Передавать значение из конфига.
 
 	return &App{
 		HTTPServer: server,

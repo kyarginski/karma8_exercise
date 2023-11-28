@@ -15,6 +15,7 @@ import (
 )
 
 type ServiceA struct {
+	log     *slog.Logger
 	storage *repository.Storage
 	buckets []*Bucket
 }
@@ -39,7 +40,10 @@ func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
 		buckets[i] = NewBucket(log, bucketInfo.Address, bucketInfo.ID)
 	}
 
+	// Запуск задачи по очистке кэша.
+
 	return &ServiceA{
+		log:     log,
 		storage: storage,
 		buckets: buckets,
 	}, nil
@@ -53,22 +57,21 @@ func (s *ServiceA) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	/*
-		// Проверяем наличие файла в кэше.
-		fileName := s.storage.GetCacheItem(metadata.Checksum)
-		if fileName != "" {
-			// Если файл есть в кэше, то возвращаем его.
-			data, err := processes.ReadFile(fileName)
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", op, err)
-			}
-			return &models.FileItem{
-				FileName:        fileName,
-				FileContentType: metadata.ContentType,
-				FileContent:     data,
-			}, nil
+	// Проверяем наличие файла в кэше.
+	fileName := s.storage.GetCacheItem(metadata.Checksum)
+	if fileName != "" {
+		// Если файл есть в кэше, то возвращаем его.
+		data, err := processes.ReadFile(fileName)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-	*/
+		return &models.FileItem{
+			FileName:        fileName,
+			FileContentType: metadata.ContentType,
+			FileContent:     data,
+		}, nil
+	}
+
 	data, err := s.GetFileFromBuckets(metadata.UUID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -106,7 +109,7 @@ func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	cache := &models.CacheItem{
 		Checksum:  checksum,
 		FileName:  source.FileName,
-		ExpiredAt: time.Now().Add(3 * time.Minute), // TODO: в настройки.
+		ExpiredAt: time.Now().UTC().Add(3 * time.Minute), // TODO: в настройки.
 	}
 	err = s.storage.PutCacheItem(cache)
 	if err != nil {
@@ -128,10 +131,6 @@ func (s *ServiceA) DeleteFileItem(_ uuid.UUID) error {
 
 func (s *ServiceA) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	return nil, nil
-}
-
-func (s *ServiceA) PutFileItemToCache(source *models.CacheItem) error {
-	return s.storage.PutCacheItem(source)
 }
 
 func (s *ServiceA) GetFileNameFromCache(id uuid.UUID) string {
@@ -223,4 +222,35 @@ func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
 	}
 
 	return finalData, nil
+}
+
+func (s *ServiceA) ClearCache(d time.Duration) {
+	// Создание таймера, который будет срабатывать каждые d интервалов.
+	ticker := time.NewTicker(d)
+	defer ticker.Stop()
+
+	// Бесконечный цикл для периодического запуска функции очистки кэша.
+	for range ticker.C {
+		go s.runClearCache()
+	}
+}
+
+func (s *ServiceA) runClearCache() {
+	s.log.Debug("ClearCache " + time.Now().String())
+
+	// Получение списка файлов, которые нужно удалить.
+	items, err := s.storage.GetExpiredCacheFilenames()
+	if err != nil {
+		s.log.Error("GetExpiredCacheFilenames", "error", err)
+		return
+	}
+	// Удаление файлов и информации о них.
+	err = s.storage.DeleteExpiredCacheFiles(items)
+	if err != nil {
+		s.log.Error("DeleteExpiredCacheFiles", "error", err)
+		return
+	}
+	if len(items) > 0 {
+		s.log.Debug("ClearCache deleted files", "count", len(items))
+	}
 }

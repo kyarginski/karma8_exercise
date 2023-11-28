@@ -11,6 +11,7 @@ import (
 )
 
 type ServiceB struct {
+	log     *slog.Logger
 	storage *repository.StorageRedis
 	buckets []*Bucket
 }
@@ -36,6 +37,7 @@ func NewServiceB(log *slog.Logger, connectString string, redisDB int) (*ServiceB
 	}
 
 	return &ServiceB{
+		log:     log,
 		storage: storage,
 		buckets: buckets,
 	}, nil
