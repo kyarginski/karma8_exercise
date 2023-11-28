@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"karma8/internal/app/processes"
 	"karma8/internal/app/services"
 	"karma8/internal/models"
 
@@ -15,7 +14,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetFileItem(service *services.Service) http.HandlerFunc {
+func GetBucketItem(service services.IService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		fileID := vars["id"]
@@ -33,7 +32,7 @@ func GetFileItem(service *services.Service) http.HandlerFunc {
 
 		// Устанавливаем заголовки.
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, data.FileName))
-		w.Header().Set("Content-Type", data.FileContentType)
+		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Length", strconv.Itoa(len(data.FileContent)))
 
 		// Отправляем содержимое файла.
@@ -41,7 +40,7 @@ func GetFileItem(service *services.Service) http.HandlerFunc {
 	}
 }
 
-func PutFileItem(service *services.Service) http.HandlerFunc {
+func PutBucketItem(service services.IService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Парсинг формы с файлом
 		err := r.ParseMultipartForm(10 << 20) // TODO (в настройки) 10 MB максимальный размер файла.
@@ -64,14 +63,11 @@ func PutFileItem(service *services.Service) http.HandlerFunc {
 			http.Error(w, "Failed to read file content", http.StatusInternalServerError)
 			return
 		}
-		// Запись файла на диск.
-		_, err = processes.WriteFile(fileContent, handler.Filename)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		// Получение ID файла из формы.
+		fileID := r.FormValue("id")
 
 		source := &models.FileItem{
+			ID:              fileID,
 			FileName:        handler.Filename,
 			FileContentType: http.DetectContentType(fileContent),
 			FileContent:     fileContent,

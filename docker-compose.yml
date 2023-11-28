@@ -4,14 +4,14 @@ networks:
   karma8-net:
 
 services:
-  karma8-db:
+  karma8-postgres:
     build:
       context: ./deploy
-      dockerfile: db.Dockerfile
-    container_name: karma8-db
+      dockerfile: postgres.Dockerfile
+    container_name: karma8-postgres
     user: root  # needed because windows hates me
     volumes:
-      - karma8-db:/var/lib/postgresql/data
+      - karma8-postgres:/var/lib/postgresql/data
     networks:
       - karma8-net
     ports:
@@ -33,7 +33,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - karma8-db
+      - karma8-postgres
     environment:
       - BLOG_CONFIG_PATH=config/blog/prod.yaml
 

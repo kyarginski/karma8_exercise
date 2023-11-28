@@ -13,17 +13,17 @@ import (
 
 type App struct {
 	HTTPServer *web.HTTPServer
-	service    *services.Service
+	service    services.IService
 }
 
-func New(
+func NewServiceA(
 	log *slog.Logger,
 	connectString string,
 	port int,
 ) (*App, error) {
-	const op = "app.New"
+	const op = "app.NewServiceA"
 
-	srv, err := services.NewService(log, connectString)
+	srv, err := services.NewServiceA(log, connectString)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -32,6 +32,31 @@ func New(
 
 	router.HandleFunc("/api/file/{id}", handler.GetFileItem(srv)).Methods("GET")
 	router.HandleFunc("/api/file", handler.PutFileItem(srv)).Methods("PUT")
+	server := web.New(log, port, router)
+
+	return &App{
+		HTTPServer: server,
+		service:    srv,
+	}, nil
+}
+
+func NewServiceB(
+	log *slog.Logger,
+	connectString string,
+	port int,
+	redisDB int,
+) (*App, error) {
+	const op = "app.NewServiceB"
+
+	srv, err := services.NewServiceB(log, connectString, redisDB)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	router := mux.NewRouter()
+
+	router.HandleFunc("/api/filepart/{id}", handler.GetBucketItem(srv)).Methods("GET")
+	router.HandleFunc("/api/filepart", handler.PutBucketItem(srv)).Methods("PUT")
 	server := web.New(log, port, router)
 
 	return &App{

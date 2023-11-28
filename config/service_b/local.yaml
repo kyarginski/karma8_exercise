@@ -1,5 +1,4 @@
 env: "local"
 version: "1.0.0"
-db_connect: "root:password@tcp(localhost:3306)/myblog"
-#db_connect: "root:password@tcp(:3306)/myblog"
-port: 8085
+db_connect: "redis://localhost:6379?protocol=3"
+port: 8261

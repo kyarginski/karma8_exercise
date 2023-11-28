@@ -13,13 +13,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type Service struct {
+type ServiceA struct {
 	storage *repository.Storage
 	buckets []*Bucket
 }
 
-func NewService(log *slog.Logger, connectString string) (*Service, error) {
-	const op = "service.New"
+func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
+	const op = "serviceA.NewServiceA"
 
 	storage, err := repository.New(connectString)
 	if err != nil {
@@ -38,14 +38,14 @@ func NewService(log *slog.Logger, connectString string) (*Service, error) {
 		buckets[i] = NewBucket(log, bucketInfo.Address, bucketInfo.ID)
 	}
 
-	return &Service{
+	return &ServiceA{
 		storage: storage,
 		buckets: buckets,
 	}, nil
 }
 
-func (s *Service) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
-	const op = "service.GetFileItem"
+func (s *ServiceA) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
+	const op = "serviceA.GetFileItem"
 
 	metadata, err := s.storage.GetFileMetadata(id)
 	if err != nil {
@@ -70,8 +70,8 @@ func (s *Service) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 	return nil, nil
 }
 
-func (s *Service) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
-	const op = "service.PutFileItem"
+func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
+	const op = "serviceA.PutFileItem"
 
 	path := filepath.Join(".", processes.PathCache, source.FileName)
 	checksum, err := processes.CalculateChecksum(path)
@@ -106,19 +106,19 @@ func (s *Service) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	return newID, nil
 }
 
-func (s *Service) DeleteFileItem(id uuid.UUID) error {
+func (s *ServiceA) DeleteFileItem(id uuid.UUID) error {
 	return nil
 }
 
-func (s *Service) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
+func (s *ServiceA) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	return nil, nil
 }
 
-func (s *Service) PutFileItemToCache(source *models.CacheItem) error {
+func (s *ServiceA) PutFileItemToCache(source *models.CacheItem) error {
 	return s.storage.PutCacheItem(source)
 }
 
-func (s *Service) GetFileNameFromCache(id uuid.UUID) string {
+func (s *ServiceA) GetFileNameFromCache(id uuid.UUID) string {
 	item, err := s.storage.GetFileMetadata(id)
 	if err != nil {
 		return ""
@@ -127,7 +127,7 @@ func (s *Service) GetFileNameFromCache(id uuid.UUID) string {
 	return s.storage.GetCacheItem(item.Checksum)
 }
 
-func (s *Service) GetBucketsIDs() []int64 {
+func (s *ServiceA) GetBucketsIDs() []int64 {
 	n := len(s.buckets)
 	bucketIDs := make([]int64, n)
 
@@ -138,6 +138,6 @@ func (s *Service) GetBucketsIDs() []int64 {
 	return bucketIDs
 }
 
-func (s *Service) Close() error {
+func (s *ServiceA) Close() error {
 	return s.storage.Close()
 }

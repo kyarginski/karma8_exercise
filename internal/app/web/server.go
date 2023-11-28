@@ -46,17 +46,17 @@ func (s *HTTPServer) Start() {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	s.log.Info("started service A server", "port", s.server.Addr)
+	s.log.Info("started http server", "port", s.server.Addr)
 
 	<-done
-	s.log.Info("stopping service A server")
+	s.log.Info("stopping http server")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		s.log.Error("failed to stop server", "error", err)
+		s.log.Error("failed to stop http server", "error", err)
 	}
 
-	s.log.Info("service A server stopped")
+	s.log.Info("http server stopped")
 }

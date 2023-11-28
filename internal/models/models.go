@@ -8,6 +8,7 @@ import (
 
 // FileItem - структура для хранения записи файла.
 type FileItem struct {
+	ID              string `json:"id"`
 	FileName        string `json:"file_name"`
 	FileContentType string `json:"file_content_type"`
 	FileContent     []byte `json:"file_content"`

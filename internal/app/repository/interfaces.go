@@ -17,6 +17,11 @@ type ICache interface {
 	GetCacheItem(checksum string) string
 }
 
-type IBucket interface {
+type IBucketInfo interface {
 	GetBucketsInfo() ([]*models.ServerBucketInfo, error)
+}
+
+type IBucket interface {
+	PutBucketItem(id string, source []byte) error
+	GetBucketItem(id string) ([]byte, error)
 }

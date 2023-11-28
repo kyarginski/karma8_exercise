@@ -1,6 +1,6 @@
-// Service A for karma8.
+// Service B for karma8.
 //
-// # Description of the REST API of the service A for working with New Super Amazon S3 competitor.
+// # Description of the REST API of the service B for working with New Super Amazon S3 competitor.
 //
 // Consumes:
 // - application/json
@@ -28,10 +28,10 @@ import (
 )
 
 func main() {
-	cfg := config.MustLoad("service_a")
+	cfg := config.MustLoad("service_b")
 	log := sl.SetupLogger(cfg.Env)
 	log.Info(
-		"starting service A server",
+		"starting service B server",
 		slog.String("env", cfg.Env),
 		slog.String("version", cfg.Version),
 	)
@@ -45,7 +45,7 @@ func main() {
 func run(log *slog.Logger, cfg *config.Config) error {
 	log.Debug("starting db connect ", "connect", cfg.DBConnect)
 
-	application, err := app.NewServiceA(log, cfg.DBConnect, cfg.Port)
+	application, err := app.NewServiceB(log, cfg.DBConnect, cfg.Port, cfg.RedisDB)
 	defer application.Stop()
 	if err != nil {
 		return err
