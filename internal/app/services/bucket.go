@@ -35,6 +35,7 @@ func NewBucket(log *slog.Logger, path string, id int64) *Bucket {
 	}
 }
 
+// GetBucketsInfo возвращает информацию об активных бакетах.
 func (s *Bucket) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	result := make([]*models.ServerBucketInfo, 0)
 	result = append(result, &models.ServerBucketInfo{
@@ -45,8 +46,9 @@ func (s *Bucket) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	return result, nil
 }
 
+// SendToBucket отправляет файл в бакет.
 func (s *Bucket) SendToBucket(item *models.BucketItem, id uuid.UUID) error {
-	// Создаем буфер для записи данных формы
+	// Создаем буфер для записи данных формы.
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
@@ -88,12 +90,12 @@ func (s *Bucket) SendToBucket(item *models.BucketItem, id uuid.UUID) error {
 	return nil
 }
 
+// GetFromBucket получает части файла из бакета.
 func (s *Bucket) GetFromBucket(id uuid.UUID, results map[int64][]byte, mutex *sync.Mutex) {
 	url := fmt.Sprintf(s.path+"/%s", id)
 
 	response, err := http.Get(url)
 	if err != nil {
-		// Обработка ошибки, если необходимо.
 		s.log.Error("GetFromBucket", "error", err)
 
 		return

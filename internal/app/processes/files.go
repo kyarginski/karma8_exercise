@@ -10,18 +10,18 @@ import (
 )
 
 const (
-	pathTemp  = "/tmp"
 	pathCache = "/cache"
 )
 
+// GetFileNameWithPathCache - возвращает путь к файлу в директории pathCache.
 func GetFileNameWithPathCache(filename string) string {
 	return filepath.Join(".", pathCache, filename)
 }
 
+// ReadFile - читает содержимое файла.
 func ReadFile(filename string) ([]byte, error) {
 	filePath := GetFileNameWithPathCache(filename)
 
-	// Читаем содержимое файла
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
@@ -30,6 +30,7 @@ func ReadFile(filename string) ([]byte, error) {
 	return data, nil
 }
 
+// WriteFile - записывает содержимое файла, результат - путь к файлу.
 func WriteFile(fileContent []byte, fileName string) (string, error) {
 	path := filepath.Join(".", pathCache)
 	// Создание директории, если её нет.
@@ -48,6 +49,7 @@ func WriteFile(fileContent []byte, fileName string) (string, error) {
 	return savePath, nil
 }
 
+// CalculateChecksum - вычисляет контрольную сумму файла.
 func CalculateChecksum(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -67,6 +69,7 @@ func CalculateChecksum(filePath string) (string, error) {
 	return checksum, nil
 }
 
+// DeleteFile - удаляет файл.
 func DeleteFile(filename string) error {
 	filePath := GetFileNameWithPathCache(filename)
 

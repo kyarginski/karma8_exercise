@@ -49,6 +49,7 @@ func New(path string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
+// PutCacheItem сохраняет информацию о файле в кэше в БД.
 func (s *Storage) PutCacheItem(source *models.CacheItem) error {
 	query := `
 		INSERT INTO cache (checksum, filename, expired_at)
@@ -60,6 +61,7 @@ func (s *Storage) PutCacheItem(source *models.CacheItem) error {
 	return err
 }
 
+// GetCacheItem возвращает имя файла из кэша по его контрольной сумме.
 func (s *Storage) GetCacheItem(checksum string) string {
 	query := "SELECT filename FROM cache WHERE checksum = $1"
 
@@ -70,6 +72,7 @@ func (s *Storage) GetCacheItem(checksum string) string {
 	return fileName
 }
 
+// GetFileMetadata возвращает метаданные файла по UUID.
 func (s *Storage) GetFileMetadata(id uuid.UUID) (*models.MetadataItem, error) {
 	query := "SELECT * FROM metadata WHERE uuid = $1"
 
@@ -90,8 +93,9 @@ func (s *Storage) GetFileMetadata(id uuid.UUID) (*models.MetadataItem, error) {
 	return &item, nil
 }
 
+// PutFileMetadata сохраняет метаданные файла в БД - возвращает новый UUID файла.
 func (s *Storage) PutFileMetadata(source *models.MetadataItem) (uuid.UUID, error) {
-	// Генерация нового UUID
+	// Генерация нового UUID.
 	newUUID, err := uuid.NewUUID()
 	if err != nil {
 		return uuid.Nil, err
@@ -123,6 +127,7 @@ func (s *Storage) PutFileMetadata(source *models.MetadataItem) (uuid.UUID, error
 	return newUUID, nil
 }
 
+// DeleteFileMetadata удаляет метаданные файла по UUID.
 func (s *Storage) DeleteFileMetadata(id uuid.UUID) error {
 	query := "DELETE FROM metadata WHERE uuid = $1"
 
@@ -134,6 +139,7 @@ func (s *Storage) DeleteFileMetadata(id uuid.UUID) error {
 	return nil
 }
 
+// GetBucketsInfo возвращает информацию о всех активных бакетах.
 func (s *Storage) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	query := `SELECT id, address FROM bucket WHERE active_sign = true order by id`
 
@@ -160,6 +166,7 @@ func (s *Storage) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	return buckets, nil
 }
 
+// GetExpiredCacheFilenames возвращает информацию о файлах из кэша, которые просрочены.
 func (s *Storage) GetExpiredCacheFilenames() ([]models.CacheItem, error) {
 	query := "SELECT filename, checksum FROM cache WHERE expired_at <= $1"
 
@@ -193,6 +200,7 @@ func (s *Storage) GetExpiredCacheFilenames() ([]models.CacheItem, error) {
 	return cacheItems, nil
 }
 
+// DeleteExpiredCacheFiles удаляет файлы из кэша, которые просрочены.
 func (s *Storage) DeleteExpiredCacheFiles(items []models.CacheItem) error {
 	query := "DELETE FROM cache WHERE checksum = $1"
 

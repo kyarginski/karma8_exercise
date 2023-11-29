@@ -44,6 +44,7 @@ type MetadataItem struct {
 }
 
 // ResponseSuccess - структура для возврата ответа об успешном сохранении файла.
+// swagger:model
 type ResponseSuccess struct {
 	ID string `json:"id"`
 }

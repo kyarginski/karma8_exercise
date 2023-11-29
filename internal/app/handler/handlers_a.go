@@ -16,6 +16,25 @@ import (
 )
 
 func GetFileItem(service services.IService) http.HandlerFunc {
+	// swagger:operation GET /api/file/{id} GetFileItem
+	// Get file from server by ID.
+	// ---
+	// description: Get file from server by ID.
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: The ID of the file.
+	//   required: true
+	//   type: string
+	// responses:
+	//   '200':
+	//     description: OK
+	//   '400':
+	//     description: Bad User Request Error
+	//   '404':
+	//     description: File Not Found Error
+	//   '500':
+	//     description: Internal Server Error
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		fileID := vars["id"]
@@ -42,6 +61,27 @@ func GetFileItem(service services.IService) http.HandlerFunc {
 }
 
 func PutFileItem(service services.IService) http.HandlerFunc {
+	// swagger:operation PUT /api/file PutFileItem
+	// Upload a file.
+	// ---
+	// description: Uploads a file to the server.
+	// parameters:
+	// - name: file
+	//   in: formData
+	//   description: The file to upload.
+	//   required: true
+	//   type: file
+	// consumes:
+	// - multipart/form-data
+	// responses:
+	//   '200':
+	//     description: OK
+	//     schema:
+	//       "$ref": "#/definitions/ResponseSuccess"
+	//   '400':
+	//     description: Bad User Request Error
+	//   '500':
+	//     description: Internal Server Error
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Парсинг формы с файлом
 		err := r.ParseMultipartForm(10 << 20) // TODO (в настройки) 10 MB максимальный размер файла.

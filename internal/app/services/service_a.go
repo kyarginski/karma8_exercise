@@ -49,6 +49,7 @@ func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
 	}, nil
 }
 
+// GetFileItem возвращает файл по его ID.
 func (s *ServiceA) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 	const op = "serviceA.GetFileItem"
 
@@ -83,6 +84,7 @@ func (s *ServiceA) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 	}, nil
 }
 
+// PutFileItem сохраняет файл на сервере и возвращает его ID.
 func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	const op = "serviceA.PutFileItem"
 
@@ -125,14 +127,17 @@ func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	return newID, nil
 }
 
+// DeleteFileItem удаляет файл по его ID.
 func (s *ServiceA) DeleteFileItem(_ uuid.UUID) error {
 	return nil
 }
 
+// GetBucketsInfo возвращает информацию о бакетах.
 func (s *ServiceA) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	return nil, nil
 }
 
+// GetFileNameFromCache возвращает имя файла из кэша по его ID.
 func (s *ServiceA) GetFileNameFromCache(id uuid.UUID) string {
 	item, err := s.storage.GetFileMetadata(id)
 	if err != nil {
@@ -142,6 +147,7 @@ func (s *ServiceA) GetFileNameFromCache(id uuid.UUID) string {
 	return s.storage.GetCacheItem(item.Checksum)
 }
 
+// GetBucketsIDs возвращает ID всех бакетов.
 func (s *ServiceA) GetBucketsIDs() []int64 {
 	n := len(s.buckets)
 	bucketIDs := make([]int64, n)
@@ -153,10 +159,12 @@ func (s *ServiceA) GetBucketsIDs() []int64 {
 	return bucketIDs
 }
 
+// Close закрывает соединение с БД.
 func (s *ServiceA) Close() error {
 	return s.storage.Close()
 }
 
+// PutFileIntoBuckets раскладывает файл по бакетам.
 func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
 	const op = "serviceA.PutFileIntoBuckets"
 
@@ -188,6 +196,7 @@ func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
 	return nil
 }
 
+// GetFileFromBuckets собирает файл из бакетов.
 func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
 	const op = "serviceA.GetFileFromBuckets"
 
@@ -232,6 +241,7 @@ func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
 	return finalData, nil
 }
 
+// ClearCache запускает периодическую очистку кэша.
 func (s *ServiceA) ClearCache(d time.Duration) {
 	// Создание таймера, который будет срабатывать каждые d интервалов.
 	ticker := time.NewTicker(d)
@@ -243,6 +253,7 @@ func (s *ServiceA) ClearCache(d time.Duration) {
 	}
 }
 
+// runClearCache запускает очистку кэша.
 func (s *ServiceA) runClearCache() {
 	s.log.Debug("ClearCache " + time.Now().String())
 

@@ -1,0 +1,97 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "# Description of the REST API of the service B for working with New Super Amazon S3 competitor.",
+    "title": "Service B for karma8.",
+    "version": "1.0.0"
+  },
+  "host": "localhost",
+  "paths": {
+    "/api/file": {
+      "put": {
+        "description": "Uploads a file to the server.",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "summary": "Upload a file.",
+        "operationId": "PutFileItem",
+        "parameters": [
+          {
+            "type": "file",
+            "description": "The file to upload.",
+            "name": "file",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseSuccess"
+            }
+          },
+          "400": {
+            "description": "Bad User Request Error"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/file/{id}": {
+      "get": {
+        "description": "Get file from server by ID.",
+        "summary": "Get file from server by ID.",
+        "operationId": "GetFileItem",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the file.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad User Request Error"
+          },
+          "404": {
+            "description": "File Not Found Error"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ResponseSuccess": {
+      "type": "object",
+      "title": "ResponseSuccess - структура для возврата ответа об успешном сохранении файла.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        }
+      },
+      "x-go-package": "_/Users/viktorkyarginsky/Work/examples/karma8_exercise/internal/models"
+    }
+  }
+}

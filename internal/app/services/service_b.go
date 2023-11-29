@@ -43,6 +43,7 @@ func NewServiceB(log *slog.Logger, connectString string, redisDB int) (*ServiceB
 	}, nil
 }
 
+// GetFileItem возвращает файл по его ID.
 func (s *ServiceB) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 	const op = "serviceB.GetFileItem"
 
@@ -60,6 +61,7 @@ func (s *ServiceB) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 	return item, nil
 }
 
+// PutFileItem сохраняет файл в БД и возвращает его ID.
 func (s *ServiceB) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	const op = "serviceB.PutFileItem"
 
@@ -77,18 +79,22 @@ func (s *ServiceB) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	return parsedUUID, nil
 }
 
+// DeleteFileItem удаляет файл по его ID.
 func (s *ServiceB) DeleteFileItem(_ uuid.UUID) error {
 	return nil
 }
 
+// GetBucketsInfo возвращает информацию об активных бакетах.
 func (s *ServiceB) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 	return nil, nil
 }
 
+// PutFileItemToCache сохраняет файл в кэше.
 func (s *ServiceB) PutFileItemToCache(source *models.CacheItem) error {
 	return s.storage.PutCacheItem(source)
 }
 
+// GetFileNameFromCache возвращает имя файла из кэша.
 func (s *ServiceB) GetFileNameFromCache(id uuid.UUID) string {
 	item, err := s.storage.GetFileMetadata(id)
 	if err != nil {
@@ -98,6 +104,7 @@ func (s *ServiceB) GetFileNameFromCache(id uuid.UUID) string {
 	return s.storage.GetCacheItem(item.Checksum)
 }
 
+// GetBucketsIDs возвращает ID бакетов.
 func (s *ServiceB) GetBucketsIDs() []int64 {
 	n := len(s.buckets)
 	bucketIDs := make([]int64, n)
@@ -109,6 +116,7 @@ func (s *ServiceB) GetBucketsIDs() []int64 {
 	return bucketIDs
 }
 
+// Close закрывает соединение с БД.
 func (s *ServiceB) Close() error {
 	return s.storage.Close()
 }

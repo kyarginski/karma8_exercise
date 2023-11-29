@@ -17,6 +17,7 @@ type App struct {
 	service    services.IService
 }
 
+// NewServiceA создает новый экземпляр сервиса A.
 func NewServiceA(
 	log *slog.Logger,
 	connectString string,
@@ -44,6 +45,7 @@ func NewServiceA(
 	}, nil
 }
 
+// NewServiceB создает новый экземпляр сервиса B.
 func NewServiceB(
 	log *slog.Logger,
 	connectString string,
@@ -69,10 +71,12 @@ func NewServiceB(
 	}, nil
 }
 
+// Start запускает приложение.
 func (a *App) Start() {
 	a.HTTPServer.Start()
 }
 
+// Stop останавливает приложение.
 func (a *App) Stop() {
 	if a != nil && a.service != nil {
 		a.service.Close()

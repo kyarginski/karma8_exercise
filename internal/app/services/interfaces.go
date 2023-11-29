@@ -12,9 +12,3 @@ type IService interface {
 	DeleteFileItem(id uuid.UUID) error
 	Close() error
 }
-
-type IBucket interface {
-	GetFilePart(id uuid.UUID) ([]byte, error)
-	PutFilePart(id uuid.UUID, source []byte) error
-	DeleteFilePart(id uuid.UUID) error
-}
