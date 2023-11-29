@@ -8,6 +8,7 @@ test:
 	go test -count=1 -race ./...
 
 build_service_a:
+	mkdir -p /var/tmp/service_a/cache && chmod -R 777 /var/tmp/service_a/cache
 	go build -tags musl -ldflags="-w -extldflags '-static' -X 'main.Version=$(VERSION)'" -o service_a karma8/cmd/service_a
 
 build_service_b:

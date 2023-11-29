@@ -48,6 +48,8 @@ services:
       - karma8-postgres
     environment:
       - SERVICE_A_CONFIG_PATH=config/service_a/prod.yaml
+    volumes:
+      - "/var/tmp/service_a/cache:/app/cache"
 
   service_b_1:
     build:
@@ -160,3 +162,5 @@ services:
 volumes:
   karma8-postgres:
   karma8-redis:
+  data_source:
+    driver: local

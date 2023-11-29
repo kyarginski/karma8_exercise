@@ -40,9 +40,9 @@ func WriteFile(fileContent []byte, fileName string) (string, error) {
 	// Создание пути для сохранения файла в директории pathCache
 	savePath := filepath.Join(path, fileName)
 
-	err := os.WriteFile(savePath, fileContent, 0644)
+	err := os.WriteFile(savePath, fileContent, os.ModePerm)
 	if err != nil {
-		return "", errors.New("failed to save file content")
+		return "", errors.New("failed to save file content: " + err.Error())
 	}
 
 	return savePath, nil
