@@ -94,20 +94,29 @@ func (s *Bucket) GetFromBucket(id uuid.UUID, results map[int64][]byte, mutex *sy
 	response, err := http.Get(url)
 	if err != nil {
 		// Обработка ошибки, если необходимо.
+		s.log.Error("GetFromBucket", "error", err)
+
 		return
 	}
 	defer response.Body.Close()
 
 	// Проверяем код ответа.
 	if response.StatusCode != http.StatusOK {
-		// Обработка ошибочного статуса, если необходимо.
+		s.log.Error("error status GetFromBucket",
+			"error", err,
+			"status_code", response.StatusCode,
+		)
+
 		return
 	}
 
 	// Читаем данные из тела ответа.
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
-		// Обработка ошибки чтения данных, если необходимо.
+		s.log.Error("error io.ReadAll GetFromBucket",
+			"error", err,
+		)
+
 		return
 	}
 

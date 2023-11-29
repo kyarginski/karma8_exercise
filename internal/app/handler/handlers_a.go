@@ -27,7 +27,7 @@ func GetFileItem(service services.IService) http.HandlerFunc {
 
 		data, err := service.GetFileItem(parsedUUID)
 		if err != nil {
-			http.Error(w, "error in GetFileItem", http.StatusInternalServerError)
+			http.Error(w, "error in GetFileItem: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 

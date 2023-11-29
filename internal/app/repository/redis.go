@@ -26,7 +26,14 @@ func setDBRedis(path string, redisDB int) (*redis.Client, error) {
 	opts.DB = redisDB
 	rdb := redis.NewClient(opts)
 
-	err = rdb.Ping(context.Background()).Err()
+	// Изменение конфигурации для сохранения данных на диск.
+	ctx := context.Background()
+	_, err = rdb.ConfigSet(ctx, "appendonly", "yes").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	err = rdb.Ping(ctx).Err()
 	if err != nil {
 		return nil, err
 	}

@@ -200,12 +200,20 @@ func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
 		bucket := bucket
 		i := i
 		eg.Go(func() error {
+			bucket.GetFromBucket(id, results, &mu)
+
+			var res string
+			if len(results[s.buckets[i].ID]) > 0 {
+				res = string(results[s.buckets[i].ID][:10]) + "..."
+			}
+
 			s.buckets[i].log.Debug("GetFromBucket",
 				"id", id.String(),
 				"bucketID", s.buckets[i].ID,
 				"address", s.buckets[i].path,
+				"data", res,
 			)
-			bucket.GetFromBucket(id, results, &mu)
+
 			return nil
 		})
 	}

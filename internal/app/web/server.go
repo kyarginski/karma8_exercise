@@ -39,6 +39,7 @@ func (s *HTTPServer) Start() {
 		if err := s.server.ListenAndServe(); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
 				s.log.Error("failed to start server", "error", err)
+				panic(err)
 			}
 		}
 	}()
