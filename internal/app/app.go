@@ -82,3 +82,7 @@ func (a *App) Stop() {
 		a.service.Close()
 	}
 }
+
+func (a *App) ClearCacheAll() error {
+	return a.service.ClearCacheAll()
+}

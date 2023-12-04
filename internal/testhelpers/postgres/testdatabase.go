@@ -1,4 +1,4 @@
-package testhelpers
+package postgres
 
 import (
 	"database/sql"
@@ -134,4 +134,8 @@ func (db *TestDatabase) prepareTestDBData(t *testing.T) error {
 	}
 
 	return nil
+}
+
+func (db *TestDatabase) ConnectString(t *testing.T) string {
+	return db.containerDatabase.ConnectionString(t)
 }

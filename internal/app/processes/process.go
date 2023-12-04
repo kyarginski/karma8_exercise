@@ -31,7 +31,7 @@ func SplitFile(path string, partsIDs []int64) ([]models.BucketItem, error) {
 		return nil, errors.New("file is empty")
 	}
 
-	partSize := fileSize / int64(partsCount)
+	partSize := fileSize/int64(partsCount) + 1
 
 	var bucketItems []models.BucketItem
 

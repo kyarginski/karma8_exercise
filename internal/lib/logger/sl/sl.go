@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 
+	"karma8/internal/lib/logger/handlers/slogdiscard"
 	"karma8/internal/lib/logger/handlers/slogpretty"
 )
 
@@ -11,6 +12,7 @@ const (
 	envLocal = "local"
 	envDev   = "dev"
 	envProd  = "prod"
+	envNop   = "nop"
 )
 
 func Err(err error) slog.Attr {
@@ -24,6 +26,8 @@ func SetupLogger(env string) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {
+	case envNop:
+		log = slogdiscard.NewDiscardLogger()
 	case envLocal:
 		log = setupPrettySlog()
 	case envDev:

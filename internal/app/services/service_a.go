@@ -18,7 +18,13 @@ type ServiceA struct {
 	log     *slog.Logger
 	storage *repository.Storage
 	buckets []*Bucket
+
+	mu sync.Mutex
 }
+
+var (
+	maxDateTime = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+)
 
 func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
 	const op = "serviceA.NewServiceA"
@@ -39,8 +45,6 @@ func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
 	for i, bucketInfo := range bucketsInfo {
 		buckets[i] = NewBucket(log, bucketInfo.Address, bucketInfo.ID)
 	}
-
-	// Запуск задачи по очистке кэша.
 
 	return &ServiceA{
 		log:     log,
@@ -179,6 +183,9 @@ func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
 		item := item // создаем копию переменной item, чтобы избежать замыкания на изменяемой переменной в горутине
 		i := i
 		eg.Go(func() error {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+
 			s.buckets[i].log.Debug("SendToBucket",
 				"id", id.String(),
 				"bucketID", s.buckets[i].ID,
@@ -209,6 +216,9 @@ func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
 		bucket := bucket
 		i := i
 		eg.Go(func() error {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+
 			bucket.GetFromBucket(id, results, &mu)
 
 			var res string
@@ -249,16 +259,16 @@ func (s *ServiceA) ClearCache(d time.Duration) {
 
 	// Бесконечный цикл для периодического запуска функции очистки кэша.
 	for range ticker.C {
-		go s.runClearCache()
+		go s.runClearCache(time.Now().UTC())
 	}
 }
 
 // runClearCache запускает очистку кэша.
-func (s *ServiceA) runClearCache() {
-	s.log.Debug("ClearCache " + time.Now().String())
+func (s *ServiceA) runClearCache(current time.Time) {
+	s.log.Debug("ClearCache " + current.String())
 
 	// Получение списка файлов, которые нужно удалить.
-	items, err := s.storage.GetExpiredCacheFilenames()
+	items, err := s.storage.GetExpiredCacheFilenames(current)
 	if err != nil {
 		s.log.Error("GetExpiredCacheFilenames", "error", err)
 		return
@@ -272,4 +282,10 @@ func (s *ServiceA) runClearCache() {
 	if len(items) > 0 {
 		s.log.Debug("ClearCache deleted files", "count", len(items))
 	}
+}
+
+func (s *ServiceA) ClearCacheAll() error {
+	s.runClearCache(maxDateTime)
+
+	return nil
 }

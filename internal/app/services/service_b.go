@@ -120,3 +120,7 @@ func (s *ServiceB) GetBucketsIDs() []int64 {
 func (s *ServiceB) Close() error {
 	return s.storage.Close()
 }
+
+func (s *ServiceB) ClearCacheAll() error {
+	return nil
+}

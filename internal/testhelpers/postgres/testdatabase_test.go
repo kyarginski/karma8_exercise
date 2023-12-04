@@ -1,4 +1,4 @@
-package testhelpers
+package postgres
 
 import (
 	"testing"

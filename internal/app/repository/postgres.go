@@ -167,10 +167,8 @@ func (s *Storage) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 }
 
 // GetExpiredCacheFilenames возвращает информацию о файлах из кэша, которые просрочены.
-func (s *Storage) GetExpiredCacheFilenames() ([]models.CacheItem, error) {
+func (s *Storage) GetExpiredCacheFilenames(current time.Time) ([]models.CacheItem, error) {
 	query := "SELECT filename, checksum FROM cache WHERE expired_at <= $1"
-
-	current := time.Now().UTC()
 
 	rows, err := s.db.Query(query, current)
 	if err != nil {
