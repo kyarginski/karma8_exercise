@@ -20,7 +20,7 @@ type HTTPServer struct {
 }
 
 // New creates new HTTP server app.
-func New(log *slog.Logger, port int, router *mux.Router) *HTTPServer {
+func New(log *slog.Logger, port int, router *mux.Router) (*HTTPServer, error) {
 	cfgAddress := fmt.Sprintf(":%d", port)
 
 	srv := &http.Server{
@@ -31,7 +31,7 @@ func New(log *slog.Logger, port int, router *mux.Router) *HTTPServer {
 	return &HTTPServer{
 		log:    log,
 		server: srv,
-	}
+	}, nil
 }
 
 func (s *HTTPServer) Start() {

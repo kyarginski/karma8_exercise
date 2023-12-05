@@ -2,3 +2,5 @@ env: "local"
 version: "1.0.0"
 db_connect: "redis://localhost:6379?protocol=3"
 port: 8261
+use_tracing: true
+tracing_address: "http://localhost:14268/api/traces"

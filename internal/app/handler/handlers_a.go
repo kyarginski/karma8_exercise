@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,9 +11,13 @@ import (
 	"karma8/internal/app/processes"
 	"karma8/internal/app/services"
 	"karma8/internal/models"
+	"karma8/internal/trace"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+
+	"go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func GetFileItem(service services.IService) http.HandlerFunc {
@@ -37,16 +42,38 @@ func GetFileItem(service services.IService) http.HandlerFunc {
 	//     description: Internal Server Error
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		fileID := vars["id"]
-		parsedUUID, err := uuid.Parse(fileID)
+		id := vars["id"]
+
+		var span oteltrace.Span
+		if trace.UseTracing {
+			span = trace.CreateSubSpan(context.Background(), r, trace.ServiceTitle)
+			span.SetAttributes(
+				attribute.String("func", "GetFileItem"),
+				attribute.String("id", id),
+			)
+			defer span.End()
+		}
+
+		parsedUUID, err := uuid.Parse(id)
 		if err != nil {
 			http.Error(w, "Error parsing UUID", http.StatusBadRequest)
+			if span != nil {
+				span.SetAttributes(
+					attribute.String("error", err.Error()),
+				)
+			}
+
 			return
 		}
 
 		data, err := service.GetFileItem(parsedUUID)
 		if err != nil {
 			http.Error(w, "error in GetFileItem: "+err.Error(), http.StatusInternalServerError)
+			if span != nil {
+				span.SetAttributes(
+					attribute.String("error", err.Error()),
+				)
+			}
 			return
 		}
 
@@ -90,10 +117,26 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 			return
 		}
 
+		var span oteltrace.Span
+		if trace.UseTracing {
+			span = trace.CreateSubSpan(context.Background(), r, trace.ServiceTitle)
+			span.SetAttributes(
+				attribute.String("func", "PutFileItem"),
+			)
+
+			defer span.End()
+		}
+
 		// Получение файла из формы.
 		file, handler, err := r.FormFile("file")
 		if err != nil {
 			http.Error(w, "Failed to retrieve file from form", http.StatusBadRequest)
+			if span != nil {
+				span.SetAttributes(
+					attribute.String("error", err.Error()),
+				)
+			}
+
 			return
 		}
 		defer file.Close()
@@ -108,6 +151,12 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 		_, err = processes.WriteFile(fileContent, handler.Filename)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			if span != nil {
+				span.SetAttributes(
+					attribute.String("error", err.Error()),
+				)
+			}
+
 			return
 		}
 
@@ -120,7 +169,19 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 		newID, err := service.PutFileItem(source)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			if span != nil {
+				span.SetAttributes(
+					attribute.String("error", err.Error()),
+				)
+			}
+
 			return
+		}
+
+		if span != nil {
+			span.SetAttributes(
+				attribute.String("id", newID.String()),
+			)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -130,6 +191,12 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 		err = json.NewEncoder(w).Encode(result)
 		if err != nil {
 			http.Error(w, "error in PutFileItem", http.StatusInternalServerError)
+			if span != nil {
+				span.SetAttributes(
+					attribute.String("error", err.Error()),
+				)
+			}
+
 			return
 		}
 	}

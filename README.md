@@ -125,6 +125,39 @@ export SERVICE_B_REDIS_DB=7 && export SERVICE_B_PORT=8267 && export SERVICE_B_CO
 -----------------
 ```
 
+## Подключение OpenTelemetry
+
+https://www.jaegertracing.io/docs/1.47/getting-started/
+
+Запуск
+```
+docker run -d --name jaeger \
+  -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
+  -e COLLECTOR_OTLP_ENABLED=true \
+  -p 6831:6831/udp \
+  -p 6832:6832/udp \
+  -p 5778:5778 \
+  -p 16686:16686 \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -p 14250:14250 \
+  -p 14268:14268 \
+  -p 14269:14269 \
+  -p 9411:9411 \
+  jaegertracing/all-in-one:1.51
+
+```
+
+Просмотр
+
+http://localhost:16686 to access the Jaeger UI.
+
+
+```
+go get -u go.opentelemetry.io/otel
+go get -u go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
+
+```
 
 # Что ещё можно сделать
 
@@ -133,5 +166,11 @@ export SERVICE_B_REDIS_DB=7 && export SERVICE_B_PORT=8267 && export SERVICE_B_CO
 - сейчас кэш сделан в виде хранения файлов и очистка кэша сделана по таймеру; можно сделать другой механизм очистки кэша (например, по количеству файлов в кэше, LRU etc.) 
 - вынести кэш в отдельный сервис (если хотим горизонтально масштабировать сервис A)
 - сделать отдельный сервис управления бакетами (создание, удаление, список)
-- функциональные тесты с использованием testcontainer (postgres, redis)
-- добавить трассировку запросов через сервисы с использованием OpenTelemetry
+- ~~функциональные тесты с использованием testcontainer (postgres, redis)~~
+- ~~добавить трассировку запросов через сервисы с использованием OpenTelemetry~~
+
+
+Jaeger
+
+https://www.inanzzz.com/index.php/post/4qes/implementing-opentelemetry-and-jaeger-tracing-in-golang-http-api
+https://github.com/albertteoh/jaeger-go-example/blob/main/lib/tracing/init.go

@@ -8,16 +8,20 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"testing"
+	"time"
 
 	"karma8/internal/app"
 	"karma8/internal/lib/logger/sl"
 	"karma8/internal/models"
 	"karma8/internal/testhelpers/postgres"
 	"karma8/internal/testhelpers/redis"
+	"karma8/internal/trace"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel"
 )
 
 func TestHappyPath(t *testing.T) {
@@ -50,6 +54,29 @@ not your IP address,HN,Benin,Fredyshire,-70.41275040993187,60.19866111663936,204
 	t.Logf("Test container redis: %+v", testRedis.DB().ClientInfo(context.Background()).String())
 
 	log := sl.SetupLogger("nop")
+
+	tp, err := trace.InitJaegerTracer("http://localhost:14268/api/traces", "test-service_a", "nop", true)
+	if err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+	// Register our TracerProvider as the global so any imported
+	// instrumentation in the future will default to using it.
+	otel.SetTracerProvider(tp)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer func(ctx context.Context) {
+		// Do not make the application hang when it is shutdown.
+		ctx, cancel = context.WithTimeout(ctx, time.Second*5)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			log.Error(err.Error())
+		}
+	}(ctx)
+
 	applicationA, err := app.NewServiceA(log, testDB.ConnectString(t), httpPort)
 	defer applicationA.Stop()
 	assert.NoError(t, err)

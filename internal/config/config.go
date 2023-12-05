@@ -10,11 +10,13 @@ import (
 )
 
 type Config struct {
-	Env       string `yaml:"env" env-default:"local"`
-	Version   string `yaml:"version" env-default:"unknown"`
-	Port      int    `yaml:"port" env-default:""`
-	DBConnect string `yaml:"db_connect" env-default:""`
-	RedisDB   int    `yaml:"redis_db" env-default:"1"`
+	Env            string `yaml:"env" env-default:"local"`
+	Version        string `yaml:"version" env-default:"unknown"`
+	Port           int    `yaml:"port" env-default:""`
+	DBConnect      string `yaml:"db_connect" env-default:""`
+	RedisDB        int    `yaml:"redis_db" env-default:"1"`
+	UseTracing     bool   `yaml:"use_tracing"`
+	TracingAddress string `yaml:"tracing_address" env-default:""`
 }
 
 func MustLoad(name string) *Config {

@@ -8,6 +8,7 @@ import (
 	"karma8/internal/app/handler"
 	"karma8/internal/app/services"
 	"karma8/internal/app/web"
+	"karma8/internal/trace"
 
 	"github.com/gorilla/mux"
 )
@@ -31,10 +32,14 @@ func NewServiceA(
 	}
 
 	router := mux.NewRouter()
+	router.Use(trace.TracingMiddleware)
 
 	router.HandleFunc("/api/file/{id}", handler.GetFileItem(srv)).Methods("GET")
 	router.HandleFunc("/api/file", handler.PutFileItem(srv)).Methods("PUT")
-	server := web.New(log, port, router)
+	server, err := web.New(log, port, router)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
 	// Запуск фоновой задачи по очистке кэша.
 	go srv.ClearCache(3 * time.Minute) // TODO: Передавать значение из конфига.
@@ -63,7 +68,10 @@ func NewServiceB(
 
 	router.HandleFunc("/api/filepart/{id}", handler.GetBucketItem(srv)).Methods("GET")
 	router.HandleFunc("/api/filepart", handler.PutBucketItem(srv)).Methods("PUT")
-	server := web.New(log, port, router)
+	server, err := web.New(log, port, router)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
 	return &App{
 		HTTPServer: server,
