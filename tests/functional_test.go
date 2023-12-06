@@ -8,20 +8,17 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"testing"
-	"time"
 
 	"karma8/internal/app"
 	"karma8/internal/lib/logger/sl"
 	"karma8/internal/models"
 	"karma8/internal/testhelpers/postgres"
 	"karma8/internal/testhelpers/redis"
-	"karma8/internal/trace"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel"
 )
 
 func TestHappyPath(t *testing.T) {
@@ -37,6 +34,7 @@ not your IP address,HN,Benin,Fredyshire,-70.41275040993187,60.19866111663936,204
 	)
 
 	httpPort := 8260
+	tracingAddress := "http://localhost:14268/api/traces"
 	testDB, err := postgres.NewTestDatabase(t)
 	if err != nil {
 		fmt.Println("Error connecting to the database: ", err)
@@ -55,37 +53,18 @@ not your IP address,HN,Benin,Fredyshire,-70.41275040993187,60.19866111663936,204
 
 	log := sl.SetupLogger("nop")
 
-	tp, err := trace.InitJaegerTracer("http://localhost:14268/api/traces", "test-service_a", "nop", true)
-	if err != nil {
-		log.Error(err.Error())
-		os.Exit(1)
-	}
-	// Register our TracerProvider as the global so any imported
-	// instrumentation in the future will default to using it.
-	otel.SetTracerProvider(tp)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Cleanly shutdown and flush telemetry when the application exits.
-	defer func(ctx context.Context) {
-		// Do not make the application hang when it is shutdown.
-		ctx, cancel = context.WithTimeout(ctx, time.Second*5)
-		defer cancel()
-		if err := tp.Shutdown(ctx); err != nil {
-			log.Error(err.Error())
-		}
-	}(ctx)
-
-	applicationA, err := app.NewServiceA(log, testDB.ConnectString(t), httpPort)
+	serviceNameA := "service_a_test"
+	applicationA, err := app.NewServiceA(log, testDB.ConnectString(t), httpPort, true, tracingAddress, serviceNameA)
 	defer applicationA.Stop()
 	assert.NoError(t, err)
 
 	go applicationA.Start()
 
+	serviceNameB := "service_b_test"
+
 	applicationB := make([]*app.App, 6)
 	for i := 0; i < 6; i++ {
-		applicationB[i], err = app.NewServiceB(log, testRedis.ConnectString(t), httpPort+1+i, i+1)
+		applicationB[i], err = app.NewServiceB(log, testRedis.ConnectString(t), httpPort+1+i, i+1, true, tracingAddress, serviceNameB)
 		defer applicationB[i].Stop()
 		assert.NoError(t, err)
 

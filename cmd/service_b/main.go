@@ -16,20 +16,15 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
-
-	"karma8/internal/trace"
-
-	_ "github.com/lib/pq"
-	"go.opentelemetry.io/otel"
 
 	"karma8/internal/app"
 	"karma8/internal/config"
 	"karma8/internal/lib/logger/sl"
+
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -57,32 +52,7 @@ func run(log *slog.Logger, cfg *config.Config) error {
 		"port", cfg.Port,
 		"redis_db", cfg.RedisDB,
 	)
-
-	if cfg.UseTracing {
-		tp, err := trace.InitJaegerTracer(cfg.TracingAddress, serviceName, cfg.Env, cfg.UseTracing)
-		if err != nil {
-			log.Error(err.Error())
-			os.Exit(1)
-		}
-		// Register our TracerProvider as the global so any imported
-		// instrumentation in the future will default to using it.
-		otel.SetTracerProvider(tp)
-
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		// Cleanly shutdown and flush telemetry when the application exits.
-		defer func(ctx context.Context) {
-			// Do not make the application hang when it is shutdown.
-			ctx, cancel = context.WithTimeout(ctx, time.Second*5)
-			defer cancel()
-			if err := tp.Shutdown(ctx); err != nil {
-				log.Error(err.Error())
-			}
-		}(ctx)
-	}
-
-	application, err := app.NewServiceB(log, cfg.DBConnect, cfg.Port, cfg.RedisDB)
+	application, err := app.NewServiceB(log, cfg.DBConnect, cfg.Port, cfg.RedisDB, cfg.UseTracing, cfg.TracingAddress, serviceName)
 	defer application.Stop()
 	if err != nil {
 		return err

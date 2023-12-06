@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -34,7 +35,7 @@ func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	bucketsInfo, err := storage.GetBucketsInfo()
+	bucketsInfo, err := storage.GetBucketsInfo(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -54,16 +55,16 @@ func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
 }
 
 // GetFileItem возвращает файл по его ID.
-func (s *ServiceA) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
+func (s *ServiceA) GetFileItem(ctx context.Context, id uuid.UUID) (*models.FileItem, error) {
 	const op = "serviceA.GetFileItem"
 
-	metadata, err := s.storage.GetFileMetadata(id)
+	metadata, err := s.storage.GetFileMetadata(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Проверяем наличие файла в кэше.
-	fileName := s.storage.GetCacheItem(metadata.Checksum)
+	fileName := s.storage.GetCacheItem(ctx, metadata.Checksum)
 	if fileName != "" {
 		// Если файл есть в кэше, то возвращаем его.
 		data, err := processes.ReadFile(fileName)
@@ -89,7 +90,7 @@ func (s *ServiceA) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 }
 
 // PutFileItem сохраняет файл на сервере и возвращает его ID.
-func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
+func (s *ServiceA) PutFileItem(ctx context.Context, source *models.FileItem) (uuid.UUID, error) {
 	const op = "serviceA.PutFileItem"
 
 	path := processes.GetFileNameWithPathCache(source.FileName)
@@ -106,7 +107,7 @@ func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 		BucketIDs:   s.GetBucketsIDs(),
 	}
 	// Сохраняем метаданные в БД.
-	newID, err := s.storage.PutFileMetadata(metadata)
+	newID, err := s.storage.PutFileMetadata(ctx, metadata)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -117,7 +118,7 @@ func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 		FileName:  source.FileName,
 		ExpiredAt: time.Now().UTC().Add(3 * time.Minute), // TODO: в настройки.
 	}
-	err = s.storage.PutCacheItem(cache)
+	err = s.storage.PutCacheItem(ctx, cache)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -132,7 +133,7 @@ func (s *ServiceA) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 }
 
 // DeleteFileItem удаляет файл по его ID.
-func (s *ServiceA) DeleteFileItem(_ uuid.UUID) error {
+func (s *ServiceA) DeleteFileItem(_ context.Context, _ uuid.UUID) error {
 	return nil
 }
 
@@ -142,13 +143,13 @@ func (s *ServiceA) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 }
 
 // GetFileNameFromCache возвращает имя файла из кэша по его ID.
-func (s *ServiceA) GetFileNameFromCache(id uuid.UUID) string {
-	item, err := s.storage.GetFileMetadata(id)
+func (s *ServiceA) GetFileNameFromCache(ctx context.Context, id uuid.UUID) string {
+	item, err := s.storage.GetFileMetadata(ctx, id)
 	if err != nil {
 		return ""
 	}
 
-	return s.storage.GetCacheItem(item.Checksum)
+	return s.storage.GetCacheItem(ctx, item.Checksum)
 }
 
 // GetBucketsIDs возвращает ID всех бакетов.
@@ -267,14 +268,15 @@ func (s *ServiceA) ClearCache(d time.Duration) {
 func (s *ServiceA) runClearCache(current time.Time) {
 	s.log.Debug("ClearCache " + current.String())
 
+	ctx := context.Background()
 	// Получение списка файлов, которые нужно удалить.
-	items, err := s.storage.GetExpiredCacheFilenames(current)
+	items, err := s.storage.GetExpiredCacheFilenames(ctx, current)
 	if err != nil {
 		s.log.Error("GetExpiredCacheFilenames", "error", err)
 		return
 	}
 	// Удаление файлов и информации о них.
-	err = s.storage.DeleteExpiredCacheFiles(items)
+	err = s.storage.DeleteExpiredCacheFiles(ctx, items)
 	if err != nil {
 		s.log.Error("DeleteExpiredCacheFiles", "error", err)
 		return

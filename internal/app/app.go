@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -8,7 +9,6 @@ import (
 	"karma8/internal/app/handler"
 	"karma8/internal/app/services"
 	"karma8/internal/app/web"
-	"karma8/internal/trace"
 
 	"github.com/gorilla/mux"
 )
@@ -23,16 +23,25 @@ func NewServiceA(
 	log *slog.Logger,
 	connectString string,
 	port int,
+	useTracing bool,
+	tracingAddress string,
+	serviceName string,
 ) (*App, error) {
 	const op = "app.NewServiceA"
+	ctx := context.Background()
 
 	srv, err := services.NewServiceA(log, connectString)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	telemetryMiddleware, err := addTelemetryMiddleware(ctx, useTracing, tracingAddress, serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	router := mux.NewRouter()
-	router.Use(trace.TracingMiddleware)
+	router.Use(telemetryMiddleware)
 
 	router.HandleFunc("/api/file/{id}", handler.GetFileItem(srv)).Methods("GET")
 	router.HandleFunc("/api/file", handler.PutFileItem(srv)).Methods("PUT")
@@ -56,15 +65,25 @@ func NewServiceB(
 	connectString string,
 	port int,
 	redisDB int,
+	useTracing bool,
+	tracingAddress string,
+	serviceName string,
 ) (*App, error) {
 	const op = "app.NewServiceB"
+	ctx := context.Background()
 
 	srv, err := services.NewServiceB(log, connectString, redisDB)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	telemetryMiddleware, err := addTelemetryMiddleware(ctx, useTracing, tracingAddress, serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	router := mux.NewRouter()
+	router.Use(telemetryMiddleware)
 
 	router.HandleFunc("/api/filepart/{id}", handler.GetBucketItem(srv)).Methods("GET")
 	router.HandleFunc("/api/filepart", handler.PutBucketItem(srv)).Methods("PUT")
@@ -93,4 +112,17 @@ func (a *App) Stop() {
 
 func (a *App) ClearCacheAll() error {
 	return a.service.ClearCacheAll()
+}
+
+func addTelemetryMiddleware(ctx context.Context, useTracing bool, tracingAddress string, serviceName string) (mux.MiddlewareFunc, error) {
+	var telemetryMiddleware mux.MiddlewareFunc
+	var err error
+	if useTracing {
+		telemetryMiddleware, err = handler.TelemetryFromConfig(ctx, tracingAddress, serviceName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return telemetryMiddleware, nil
 }

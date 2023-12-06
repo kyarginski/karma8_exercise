@@ -81,16 +81,14 @@ func (s *StorageRedis) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 }
 
 // PutBucketItem сохраняет часть файла в бакете.
-func (s *StorageRedis) PutBucketItem(id string, source []byte) error {
-	ctx := context.Background()
+func (s *StorageRedis) PutBucketItem(ctx context.Context, id string, source []byte) error {
 	err := s.db.Set(ctx, id, source, 0).Err()
 
 	return err
 }
 
 // GetBucketItem возвращает часть файла из бакета по ID.
-func (s *StorageRedis) GetBucketItem(id string) ([]byte, error) {
-	ctx := context.Background()
+func (s *StorageRedis) GetBucketItem(ctx context.Context, id string) ([]byte, error) {
 	val, err := s.db.Get(ctx, id).Bytes()
 	if err != nil {
 		return nil, err

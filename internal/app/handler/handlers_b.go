@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,44 +8,37 @@ import (
 	"strconv"
 
 	"karma8/internal/app/services"
+	libcontext "karma8/internal/lib/context"
 	"karma8/internal/models"
-	"karma8/internal/trace"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"go.opentelemetry.io/otel/attribute"
-	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func GetBucketItem(service services.IService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["id"]
+
+		ctx, span := libcontext.WithTelemetrySpan(r.Context(), "GetBucketItem")
+		defer span.End()
+
+		// r = r.WithContext(ctx)
+
+		span.SetTag("id", id)
+
 		parsedUUID, err := uuid.Parse(id)
 		if err != nil {
 			http.Error(w, "Error parsing UUID", http.StatusBadRequest)
+			span.SetError(err)
+
 			return
 		}
 
-		var span oteltrace.Span
-		if trace.UseTracing {
-			span = trace.CreateSubSpan(context.Background(), r, trace.ServiceTitle)
-			span.SetAttributes(
-				attribute.String("func", "GetBucketItem"),
-				attribute.String("id", id),
-			)
-
-			defer span.End()
-		}
-
-		data, err := service.GetFileItem(parsedUUID)
+		data, err := service.GetFileItem(ctx, parsedUUID)
 		if err != nil {
 			http.Error(w, "error in GetFileItem", http.StatusInternalServerError)
-			if span != nil {
-				span.SetAttributes(
-					attribute.String("error", err.Error()),
-				)
-			}
+			span.SetError(err)
 
 			return
 		}
@@ -63,31 +55,25 @@ func GetBucketItem(service services.IService) http.HandlerFunc {
 
 func PutBucketItem(service services.IService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := libcontext.WithTelemetrySpan(r.Context(), "PutBucketItem")
+		defer span.End()
+
+		r = r.WithContext(ctx)
+
 		// Парсинг формы с файлом
 		err := r.ParseMultipartForm(10 << 20) // TODO (в настройки) 10 MB максимальный размер файла.
 		if err != nil {
 			http.Error(w, "Unable to parse form", http.StatusBadRequest)
-			return
-		}
+			span.SetError(err)
 
-		var span oteltrace.Span
-		if trace.UseTracing {
-			span = trace.CreateSubSpan(context.Background(), r, trace.ServiceTitle)
-			span.SetAttributes(
-				attribute.String("func", "GetFileItem"),
-			)
-			defer span.End()
+			return
 		}
 
 		// Получение файла из формы.
 		file, handler, err := r.FormFile("file")
 		if err != nil {
 			http.Error(w, "Failed to retrieve file from form", http.StatusBadRequest)
-			if span != nil {
-				span.SetAttributes(
-					attribute.String("error", err.Error()),
-				)
-			}
+			span.SetError(err)
 
 			return
 		}
@@ -97,11 +83,7 @@ func PutBucketItem(service services.IService) http.HandlerFunc {
 		fileContent, err := io.ReadAll(file)
 		if err != nil {
 			http.Error(w, "Failed to read file content", http.StatusInternalServerError)
-			if span != nil {
-				span.SetAttributes(
-					attribute.String("error", err.Error()),
-				)
-			}
+			span.SetError(err)
 
 			return
 		}
@@ -115,14 +97,10 @@ func PutBucketItem(service services.IService) http.HandlerFunc {
 			FileContent:     fileContent,
 		}
 
-		newID, err := service.PutFileItem(source)
+		newID, err := service.PutFileItem(ctx, source)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			if span != nil {
-				span.SetAttributes(
-					attribute.String("error", err.Error()),
-				)
-			}
+			span.SetError(err)
 
 			return
 		}
@@ -134,11 +112,7 @@ func PutBucketItem(service services.IService) http.HandlerFunc {
 		err = json.NewEncoder(w).Encode(result)
 		if err != nil {
 			http.Error(w, "error in PutFileItem", http.StatusInternalServerError)
-			if span != nil {
-				span.SetAttributes(
-					attribute.String("error", err.Error()),
-				)
-			}
+			span.SetError(err)
 
 			return
 		}

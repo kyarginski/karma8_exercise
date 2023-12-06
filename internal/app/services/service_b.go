@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -44,11 +45,11 @@ func NewServiceB(log *slog.Logger, connectString string, redisDB int) (*ServiceB
 }
 
 // GetFileItem возвращает файл по его ID.
-func (s *ServiceB) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
+func (s *ServiceB) GetFileItem(ctx context.Context, id uuid.UUID) (*models.FileItem, error) {
 	const op = "serviceB.GetFileItem"
 
 	// Получаем часть файла из БД.
-	data, err := s.storage.GetBucketItem(id.String())
+	data, err := s.storage.GetBucketItem(ctx, id.String())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -62,7 +63,7 @@ func (s *ServiceB) GetFileItem(id uuid.UUID) (*models.FileItem, error) {
 }
 
 // PutFileItem сохраняет файл в БД и возвращает его ID.
-func (s *ServiceB) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
+func (s *ServiceB) PutFileItem(ctx context.Context, source *models.FileItem) (uuid.UUID, error) {
 	const op = "serviceB.PutFileItem"
 
 	parsedUUID, err := uuid.Parse(source.ID)
@@ -71,7 +72,7 @@ func (s *ServiceB) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 	}
 
 	// Сохраняем часть файла в БД.
-	err = s.storage.PutBucketItem(source.ID, source.FileContent)
+	err = s.storage.PutBucketItem(ctx, source.ID, source.FileContent)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -80,7 +81,7 @@ func (s *ServiceB) PutFileItem(source *models.FileItem) (uuid.UUID, error) {
 }
 
 // DeleteFileItem удаляет файл по его ID.
-func (s *ServiceB) DeleteFileItem(_ uuid.UUID) error {
+func (s *ServiceB) DeleteFileItem(_ context.Context, _ uuid.UUID) error {
 	return nil
 }
 

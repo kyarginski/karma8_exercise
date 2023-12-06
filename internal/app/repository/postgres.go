@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -50,35 +51,35 @@ func New(path string) (*Storage, error) {
 }
 
 // PutCacheItem сохраняет информацию о файле в кэше в БД.
-func (s *Storage) PutCacheItem(source *models.CacheItem) error {
+func (s *Storage) PutCacheItem(ctx context.Context, source *models.CacheItem) error {
 	query := `
 		INSERT INTO cache (checksum, filename, expired_at)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (checksum) DO UPDATE
 		SET filename = EXCLUDED.filename, expired_at = EXCLUDED.expired_at;
 	`
-	_, err := s.db.Exec(query, source.Checksum, source.FileName, source.ExpiredAt)
+	_, err := s.db.ExecContext(ctx, query, source.Checksum, source.FileName, source.ExpiredAt)
 	return err
 }
 
 // GetCacheItem возвращает имя файла из кэша по его контрольной сумме.
-func (s *Storage) GetCacheItem(checksum string) string {
+func (s *Storage) GetCacheItem(ctx context.Context, checksum string) string {
 	query := "SELECT filename FROM cache WHERE checksum = $1"
 
 	var fileName string
 
-	_ = s.db.QueryRow(query, checksum).Scan(&fileName)
+	_ = s.db.QueryRowContext(ctx, query, checksum).Scan(&fileName)
 
 	return fileName
 }
 
 // GetFileMetadata возвращает метаданные файла по UUID.
-func (s *Storage) GetFileMetadata(id uuid.UUID) (*models.MetadataItem, error) {
+func (s *Storage) GetFileMetadata(ctx context.Context, id uuid.UUID) (*models.MetadataItem, error) {
 	query := "SELECT * FROM metadata WHERE uuid = $1"
 
 	var item models.MetadataItem
 
-	err := s.db.QueryRow(query, id).Scan(
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
 		&item.UUID,
 		&item.Checksum,
 		&item.FileName,
@@ -94,7 +95,7 @@ func (s *Storage) GetFileMetadata(id uuid.UUID) (*models.MetadataItem, error) {
 }
 
 // PutFileMetadata сохраняет метаданные файла в БД - возвращает новый UUID файла.
-func (s *Storage) PutFileMetadata(source *models.MetadataItem) (uuid.UUID, error) {
+func (s *Storage) PutFileMetadata(ctx context.Context, source *models.MetadataItem) (uuid.UUID, error) {
 	// Генерация нового UUID.
 	newUUID, err := uuid.NewUUID()
 	if err != nil {
@@ -111,7 +112,8 @@ func (s *Storage) PutFileMetadata(source *models.MetadataItem) (uuid.UUID, error
 	`
 
 	// Выполнение запроса
-	err = s.db.QueryRow(
+	err = s.db.QueryRowContext(
+		ctx,
 		query,
 		newUUID,
 		source.Checksum,
@@ -128,10 +130,10 @@ func (s *Storage) PutFileMetadata(source *models.MetadataItem) (uuid.UUID, error
 }
 
 // DeleteFileMetadata удаляет метаданные файла по UUID.
-func (s *Storage) DeleteFileMetadata(id uuid.UUID) error {
+func (s *Storage) DeleteFileMetadata(ctx context.Context, id uuid.UUID) error {
 	query := "DELETE FROM metadata WHERE uuid = $1"
 
-	_, err := s.db.Exec(query, id)
+	_, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -140,10 +142,10 @@ func (s *Storage) DeleteFileMetadata(id uuid.UUID) error {
 }
 
 // GetBucketsInfo возвращает информацию о всех активных бакетах.
-func (s *Storage) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
+func (s *Storage) GetBucketsInfo(ctx context.Context) ([]*models.ServerBucketInfo, error) {
 	query := `SELECT id, address FROM bucket WHERE active_sign = true order by id`
 
-	rows, err := s.db.Query(query)
+	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -167,10 +169,10 @@ func (s *Storage) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 }
 
 // GetExpiredCacheFilenames возвращает информацию о файлах из кэша, которые просрочены.
-func (s *Storage) GetExpiredCacheFilenames(current time.Time) ([]models.CacheItem, error) {
+func (s *Storage) GetExpiredCacheFilenames(ctx context.Context, current time.Time) ([]models.CacheItem, error) {
 	query := "SELECT filename, checksum FROM cache WHERE expired_at <= $1"
 
-	rows, err := s.db.Query(query, current)
+	rows, err := s.db.QueryContext(ctx, query, current)
 	if err != nil {
 		return nil, err
 	}
@@ -199,11 +201,11 @@ func (s *Storage) GetExpiredCacheFilenames(current time.Time) ([]models.CacheIte
 }
 
 // DeleteExpiredCacheFiles удаляет файлы из кэша, которые просрочены.
-func (s *Storage) DeleteExpiredCacheFiles(items []models.CacheItem) error {
+func (s *Storage) DeleteExpiredCacheFiles(ctx context.Context, items []models.CacheItem) error {
 	query := "DELETE FROM cache WHERE checksum = $1"
 
 	for _, item := range items {
-		_, err := s.db.Exec(query, item.Checksum)
+		_, err := s.db.ExecContext(ctx, query, item.Checksum)
 		if err != nil {
 			return err
 		}
