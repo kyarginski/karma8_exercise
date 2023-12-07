@@ -39,6 +39,7 @@ func main() {
 		slog.String("env", cfg.Env),
 		slog.String("version", cfg.Version),
 		slog.Bool("use_tracing", cfg.UseTracing),
+		slog.String("tracing_address", cfg.TracingAddress),
 	)
 
 	if err := run(log, cfg); err != nil {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -10,6 +11,9 @@ import (
 	"sync"
 	"time"
 
+	trccontext "karma8/internal/lib/context"
+	"karma8/internal/lib/logger/sl"
+	"karma8/internal/lib/middleware"
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
@@ -91,38 +95,50 @@ func (s *Bucket) SendToBucket(item *models.BucketItem, id uuid.UUID) error {
 }
 
 // GetFromBucket получает части файла из бакета.
-func (s *Bucket) GetFromBucket(id uuid.UUID, results map[int64][]byte, mutex *sync.Mutex) {
+func (s *Bucket) GetFromBucket(ctx context.Context, id uuid.UUID, results map[int64][]byte, mutex *sync.Mutex) {
 	url := fmt.Sprintf(s.path+"/%s", id)
 
-	response, err := http.Get(url)
+	// Create a new HTTP request
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		s.log.Error("GetFromBucket", "error", err)
+		s.log.Error("GetFromBucket", "error creating request", err)
+		return
+	}
 
+	requestID, ok := trccontext.RequestIDFromContext(ctx)
+	if !ok {
+		requestID = "UNKNOWN"
+	}
+	// Set the request-id header
+	req.Header.Set(middleware.HeaderRequestID, requestID)
+
+	// Perform the HTTP request
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		s.log.Error("GetFromBucket", sl.Err(err))
 		return
 	}
 	defer response.Body.Close()
 
-	// Проверяем код ответа.
+	// Check the response status code
 	if response.StatusCode != http.StatusOK {
 		s.log.Error("error status GetFromBucket",
-			"error", err,
+			sl.Err(err),
 			"status_code", response.StatusCode,
 		)
-
 		return
 	}
 
-	// Читаем данные из тела ответа.
+	// Read data from the response body
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
 		s.log.Error("error io.ReadAll GetFromBucket",
-			"error", err,
+			sl.Err(err),
 		)
-
 		return
 	}
 
-	// Сохраняем данные в map с использованием мьютекса.
+	// Save data to the map using the mutex
 	mutex.Lock()
 	results[s.ID] = data
 	mutex.Unlock()

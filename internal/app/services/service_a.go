@@ -78,7 +78,7 @@ func (s *ServiceA) GetFileItem(ctx context.Context, id uuid.UUID) (*models.FileI
 		}, nil
 	}
 
-	data, err := s.GetFileFromBuckets(metadata.UUID)
+	data, err := s.GetFileFromBuckets(ctx, metadata.UUID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -205,7 +205,7 @@ func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
 }
 
 // GetFileFromBuckets собирает файл из бакетов.
-func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
+func (s *ServiceA) GetFileFromBuckets(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	const op = "serviceA.GetFileFromBuckets"
 
 	var eg errgroup.Group
@@ -220,7 +220,7 @@ func (s *ServiceA) GetFileFromBuckets(id uuid.UUID) ([]byte, error) {
 			s.mu.Lock()
 			defer s.mu.Unlock()
 
-			bucket.GetFromBucket(id, results, &mu)
+			bucket.GetFromBucket(ctx, id, results, &mu)
 
 			var res string
 			if len(results[s.buckets[i].ID]) > 0 {

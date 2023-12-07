@@ -153,6 +153,12 @@ docker run -d --name jaeger \
 http://localhost:16686 to access the Jaeger UI.
 
 
+В заголовок добавляем request-id запроса
+
+```
+request-id=fe1f3f07-8eb3-11ee-829b-0242ac130006
+```
+
 ```
 go get -u go.opentelemetry.io/otel
 go get -u go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp

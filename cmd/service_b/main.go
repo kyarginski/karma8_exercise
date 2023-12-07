@@ -32,12 +32,14 @@ const (
 )
 
 func main() {
-	cfg := config.MustLoad("service_b")
+	cfg := config.MustLoad(serviceName)
 	log := sl.SetupLogger(cfg.Env)
 	log.Info(
 		"starting server "+serviceName,
 		slog.String("env", cfg.Env),
 		slog.String("version", cfg.Version),
+		slog.Bool("use_tracing", cfg.UseTracing),
+		slog.String("tracing_address", cfg.TracingAddress),
 	)
 
 	if err := run(log, cfg); err != nil {

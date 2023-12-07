@@ -11,15 +11,15 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 )
 
-func TelemetryFromConfig(ctx context.Context, telemetryAddr string, serviceName string) (func(http.Handler) http.Handler, error) {
+func AddTelemetryMiddleware(ctx context.Context, telemetryAddr string, serviceName string) (func(http.Handler) http.Handler, error) {
 	tracer, err := telemetry.NewService(ctx, telemetryAddr, serviceName)
 	if err != nil {
 		return noopMiddleware, err
 	}
-	return Telemetry(tracer, serviceName), nil
+	return TelemetryHandler(tracer, serviceName), nil
 }
 
-func Telemetry(telemetr telemetry.Service, name string) func(http.Handler) http.Handler {
+func TelemetryHandler(telemetr telemetry.Service, name string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		setTelemetryLabelsHandler := func(rw http.ResponseWriter, r *http.Request) {
 			r = r.WithContext(trccontext.WithTelemetry(r.Context(), telemetr))

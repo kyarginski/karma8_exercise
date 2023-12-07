@@ -9,6 +9,7 @@ import (
 	"karma8/internal/app/handler"
 	"karma8/internal/app/services"
 	"karma8/internal/app/web"
+	"karma8/internal/lib/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -41,6 +42,7 @@ func NewServiceA(
 	}
 
 	router := mux.NewRouter()
+	router.Use(middleware.RequestID)
 	router.Use(telemetryMiddleware)
 
 	router.HandleFunc("/api/file/{id}", handler.GetFileItem(srv)).Methods("GET")
@@ -83,6 +85,7 @@ func NewServiceB(
 	}
 
 	router := mux.NewRouter()
+	router.Use(middleware.RequestID)
 	router.Use(telemetryMiddleware)
 
 	router.HandleFunc("/api/filepart/{id}", handler.GetBucketItem(srv)).Methods("GET")
@@ -118,7 +121,7 @@ func addTelemetryMiddleware(ctx context.Context, useTracing bool, tracingAddress
 	var telemetryMiddleware mux.MiddlewareFunc
 	var err error
 	if useTracing {
-		telemetryMiddleware, err = handler.TelemetryFromConfig(ctx, tracingAddress, serviceName)
+		telemetryMiddleware, err = handler.AddTelemetryMiddleware(ctx, tracingAddress, serviceName)
 		if err != nil {
 			return nil, err
 		}

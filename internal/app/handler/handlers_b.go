@@ -105,6 +105,8 @@ func PutBucketItem(service services.IService) http.HandlerFunc {
 			return
 		}
 
+		span.SetTag("id", newID.String())
+
 		w.Header().Set("Content-Type", "application/json")
 		result := models.ResponseSuccess{
 			ID: newID.String(),
