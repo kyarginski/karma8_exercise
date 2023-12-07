@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	trccontext "karma8/internal/lib/context"
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
@@ -82,6 +83,9 @@ func (s *StorageRedis) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 
 // PutBucketItem сохраняет часть файла в бакете.
 func (s *StorageRedis) PutBucketItem(ctx context.Context, id string, source []byte) error {
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "StorageRedis.PutBucketItem")
+	defer span.End()
+
 	err := s.db.Set(ctx, id, source, 0).Err()
 
 	return err
@@ -89,6 +93,9 @@ func (s *StorageRedis) PutBucketItem(ctx context.Context, id string, source []by
 
 // GetBucketItem возвращает часть файла из бакета по ID.
 func (s *StorageRedis) GetBucketItem(ctx context.Context, id string) ([]byte, error) {
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "StorageRedis.GetBucketItem")
+	defer span.End()
+
 	val, err := s.db.Get(ctx, id).Bytes()
 	if err != nil {
 		return nil, err

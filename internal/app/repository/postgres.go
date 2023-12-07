@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"karma8/internal/app/processes"
+	trccontext "karma8/internal/lib/context"
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
@@ -58,6 +59,10 @@ func (s *Storage) PutCacheItem(ctx context.Context, source *models.CacheItem) er
 		ON CONFLICT (checksum) DO UPDATE
 		SET filename = EXCLUDED.filename, expired_at = EXCLUDED.expired_at;
 	`
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.PutCacheItem")
+	defer span.End()
+
 	_, err := s.db.ExecContext(ctx, query, source.Checksum, source.FileName, source.ExpiredAt)
 	return err
 }
@@ -65,6 +70,9 @@ func (s *Storage) PutCacheItem(ctx context.Context, source *models.CacheItem) er
 // GetCacheItem возвращает имя файла из кэша по его контрольной сумме.
 func (s *Storage) GetCacheItem(ctx context.Context, checksum string) string {
 	query := "SELECT filename FROM cache WHERE checksum = $1"
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.GetCacheItem")
+	defer span.End()
 
 	var fileName string
 
@@ -76,6 +84,9 @@ func (s *Storage) GetCacheItem(ctx context.Context, checksum string) string {
 // GetFileMetadata возвращает метаданные файла по UUID.
 func (s *Storage) GetFileMetadata(ctx context.Context, id uuid.UUID) (*models.MetadataItem, error) {
 	query := "SELECT * FROM metadata WHERE uuid = $1"
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.GetFileMetadata")
+	defer span.End()
 
 	var item models.MetadataItem
 
@@ -96,6 +107,9 @@ func (s *Storage) GetFileMetadata(ctx context.Context, id uuid.UUID) (*models.Me
 
 // PutFileMetadata сохраняет метаданные файла в БД - возвращает новый UUID файла.
 func (s *Storage) PutFileMetadata(ctx context.Context, source *models.MetadataItem) (uuid.UUID, error) {
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.PutFileMetadata")
+	defer span.End()
+
 	// Генерация нового UUID.
 	newUUID, err := uuid.NewUUID()
 	if err != nil {
@@ -133,6 +147,9 @@ func (s *Storage) PutFileMetadata(ctx context.Context, source *models.MetadataIt
 func (s *Storage) DeleteFileMetadata(ctx context.Context, id uuid.UUID) error {
 	query := "DELETE FROM metadata WHERE uuid = $1"
 
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.DeleteFileMetadata")
+	defer span.End()
+
 	_, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
@@ -144,6 +161,9 @@ func (s *Storage) DeleteFileMetadata(ctx context.Context, id uuid.UUID) error {
 // GetBucketsInfo возвращает информацию о всех активных бакетах.
 func (s *Storage) GetBucketsInfo(ctx context.Context) ([]*models.ServerBucketInfo, error) {
 	query := `SELECT id, address FROM bucket WHERE active_sign = true order by id`
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.GetBucketsInfo")
+	defer span.End()
 
 	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
@@ -171,6 +191,9 @@ func (s *Storage) GetBucketsInfo(ctx context.Context) ([]*models.ServerBucketInf
 // GetExpiredCacheFilenames возвращает информацию о файлах из кэша, которые просрочены.
 func (s *Storage) GetExpiredCacheFilenames(ctx context.Context, current time.Time) ([]models.CacheItem, error) {
 	query := "SELECT filename, checksum FROM cache WHERE expired_at <= $1"
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.GetExpiredCacheFilenames")
+	defer span.End()
 
 	rows, err := s.db.QueryContext(ctx, query, current)
 	if err != nil {
@@ -203,6 +226,9 @@ func (s *Storage) GetExpiredCacheFilenames(ctx context.Context, current time.Tim
 // DeleteExpiredCacheFiles удаляет файлы из кэша, которые просрочены.
 func (s *Storage) DeleteExpiredCacheFiles(ctx context.Context, items []models.CacheItem) error {
 	query := "DELETE FROM cache WHERE checksum = $1"
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "Storage.DeleteExpiredCacheFiles")
+	defer span.End()
 
 	for _, item := range items {
 		_, err := s.db.ExecContext(ctx, query, item.Checksum)

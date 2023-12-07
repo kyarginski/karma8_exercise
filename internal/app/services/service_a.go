@@ -9,6 +9,7 @@ import (
 
 	"karma8/internal/app/processes"
 	"karma8/internal/app/repository"
+	trccontext "karma8/internal/lib/context"
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
@@ -58,6 +59,9 @@ func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
 func (s *ServiceA) GetFileItem(ctx context.Context, id uuid.UUID) (*models.FileItem, error) {
 	const op = "serviceA.GetFileItem"
 
+	ctx, span := trccontext.WithTelemetrySpan(ctx, op)
+	defer span.End()
+
 	metadata, err := s.storage.GetFileMetadata(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -93,6 +97,9 @@ func (s *ServiceA) GetFileItem(ctx context.Context, id uuid.UUID) (*models.FileI
 func (s *ServiceA) PutFileItem(ctx context.Context, source *models.FileItem) (uuid.UUID, error) {
 	const op = "serviceA.PutFileItem"
 
+	ctx, span := trccontext.WithTelemetrySpan(ctx, op)
+	defer span.End()
+
 	path := processes.GetFileNameWithPathCache(source.FileName)
 	checksum, err := processes.CalculateChecksum(path)
 	if err != nil {
@@ -124,7 +131,7 @@ func (s *ServiceA) PutFileItem(ctx context.Context, source *models.FileItem) (uu
 	}
 
 	// Раскладываем файл по корзинам (buckets).
-	err = s.PutFileIntoBuckets(newID, path)
+	err = s.PutFileIntoBuckets(ctx, newID, path)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -144,6 +151,9 @@ func (s *ServiceA) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 
 // GetFileNameFromCache возвращает имя файла из кэша по его ID.
 func (s *ServiceA) GetFileNameFromCache(ctx context.Context, id uuid.UUID) string {
+	ctx, span := trccontext.WithTelemetrySpan(ctx, "ServiceA.GetFileNameFromCache")
+	defer span.End()
+
 	item, err := s.storage.GetFileMetadata(ctx, id)
 	if err != nil {
 		return ""
@@ -170,8 +180,11 @@ func (s *ServiceA) Close() error {
 }
 
 // PutFileIntoBuckets раскладывает файл по бакетам.
-func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
+func (s *ServiceA) PutFileIntoBuckets(ctx context.Context, id uuid.UUID, path string) error {
 	const op = "serviceA.PutFileIntoBuckets"
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, op)
+	defer span.End()
 
 	items, err := processes.SplitFile(path, s.GetBucketsIDs())
 	if err != nil {
@@ -192,7 +205,7 @@ func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
 				"bucketID", s.buckets[i].ID,
 				"address", s.buckets[i].path,
 			)
-			return s.buckets[i].SendToBucket(&item, id)
+			return s.buckets[i].SendToBucket(ctx, &item, id)
 		})
 	}
 
@@ -207,6 +220,9 @@ func (s *ServiceA) PutFileIntoBuckets(id uuid.UUID, path string) error {
 // GetFileFromBuckets собирает файл из бакетов.
 func (s *ServiceA) GetFileFromBuckets(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	const op = "serviceA.GetFileFromBuckets"
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, op)
+	defer span.End()
 
 	var eg errgroup.Group
 	var mu sync.Mutex

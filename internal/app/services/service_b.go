@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"karma8/internal/app/repository"
+	trccontext "karma8/internal/lib/context"
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
@@ -48,6 +49,9 @@ func NewServiceB(log *slog.Logger, connectString string, redisDB int) (*ServiceB
 func (s *ServiceB) GetFileItem(ctx context.Context, id uuid.UUID) (*models.FileItem, error) {
 	const op = "serviceB.GetFileItem"
 
+	ctx, span := trccontext.WithTelemetrySpan(ctx, op)
+	defer span.End()
+
 	// Получаем часть файла из БД.
 	data, err := s.storage.GetBucketItem(ctx, id.String())
 	if err != nil {
@@ -65,6 +69,9 @@ func (s *ServiceB) GetFileItem(ctx context.Context, id uuid.UUID) (*models.FileI
 // PutFileItem сохраняет файл в БД и возвращает его ID.
 func (s *ServiceB) PutFileItem(ctx context.Context, source *models.FileItem) (uuid.UUID, error) {
 	const op = "serviceB.PutFileItem"
+
+	ctx, span := trccontext.WithTelemetrySpan(ctx, op)
+	defer span.End()
 
 	parsedUUID, err := uuid.Parse(source.ID)
 	if err != nil {

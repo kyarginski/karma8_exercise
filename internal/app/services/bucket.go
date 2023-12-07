@@ -51,7 +51,7 @@ func (s *Bucket) GetBucketsInfo() ([]*models.ServerBucketInfo, error) {
 }
 
 // SendToBucket отправляет файл в бакет.
-func (s *Bucket) SendToBucket(item *models.BucketItem, id uuid.UUID) error {
+func (s *Bucket) SendToBucket(ctx context.Context, item *models.BucketItem, id uuid.UUID) error {
 	// Создаем буфер для записи данных формы.
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -72,7 +72,7 @@ func (s *Bucket) SendToBucket(item *models.BucketItem, id uuid.UUID) error {
 	_ = writer.Close()
 
 	// Создаем HTTP запрос с методом PUT и устанавливаем заголовки
-	request, err := http.NewRequest("PUT", s.path, &body)
+	request, err := http.NewRequestWithContext(ctx, "PUT", s.path, &body)
 	if err != nil {
 		return err
 	}

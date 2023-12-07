@@ -17,6 +17,7 @@ import (
 	"karma8/internal/testhelpers/redis"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -97,8 +98,12 @@ not your IP address,HN,Benin,Fredyshire,-70.41275040993187,60.19866111663936,204
 
 	// Отправляем запрос
 	response, err := http.DefaultClient.Do(request)
-	assert.NoError(t, err)
-	defer response.Body.Close()
+	require.NoError(t, err)
+	defer func() {
+		if response != nil {
+			response.Body.Close()
+		}
+	}()
 
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 
