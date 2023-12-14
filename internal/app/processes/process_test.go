@@ -1,12 +1,14 @@
 package processes
 
 import (
+	"os"
 	"testing"
 
 	"karma8/internal/models"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSplitFile(t *testing.T) {
@@ -100,5 +102,26 @@ not your IP address,HN,Benin,Fredyshire,-70.41275040993187,60.19866111663936,204
 				t.Fatal("MergeFile() mismatch\n", diff)
 			}
 		})
+	}
+}
+
+func TestSplitFileLessTenSymbols(t *testing.T) {
+	name := "name"
+	payload := "somedata"
+	err := os.WriteFile(name, []byte(payload), os.ModePerm)
+	require.NoError(t, err)
+	defer os.Remove(name)
+
+	parts, err := SplitFile(name, []int64{1, 2, 3})
+	require.NoError(t, err)
+
+	actualData := ""
+	for _, part := range parts {
+		actualData += string(part.Source)
+	}
+
+	diff := cmp.Diff(actualData, payload)
+	if diff != "" {
+		t.Fatal("TestSplitFileLessTenSymbols() mismatch\n", diff)
 	}
 }

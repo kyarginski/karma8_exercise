@@ -23,6 +23,7 @@ import (
 )
 
 func TestHappyPath(t *testing.T) {
+	t.Helper()
 	// Подготовим тестовые данные.
 	testFile := []byte(`ip_address,country_code,country,city,latitude,longitude,mystery_value
 200.106.141.15,SI,Nepal,DuBuquemouth,-84.87503094689836,7.206435933364332,7823011346
