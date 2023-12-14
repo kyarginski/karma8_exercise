@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"karma8/internal/app/handler"
+	"karma8/internal/app/health"
 	"karma8/internal/app/services"
 	"karma8/internal/app/web"
 	"karma8/internal/lib/middleware"
@@ -44,6 +45,9 @@ func NewServiceA(
 	router := mux.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(telemetryMiddleware)
+
+	router.HandleFunc("/live", health.LivenessHandler(srv)).Methods("GET")
+	router.HandleFunc("/ready", health.ReadinessHandler(srv)).Methods("GET")
 
 	router.HandleFunc("/api/file/{id}", handler.GetFileItem(srv)).Methods("GET")
 	router.HandleFunc("/api/file", handler.PutFileItem(srv)).Methods("PUT")
@@ -88,6 +92,9 @@ func NewServiceB(
 	router.Use(middleware.RequestID)
 	router.Use(telemetryMiddleware)
 
+	router.HandleFunc("/live", health.LivenessHandler(srv)).Methods("GET")
+	router.HandleFunc("/ready", health.ReadinessHandler(srv)).Methods("GET")
+
 	router.HandleFunc("/api/filepart/{id}", handler.GetBucketItem(srv)).Methods("GET")
 	router.HandleFunc("/api/filepart", handler.PutBucketItem(srv)).Methods("PUT")
 	server, err := web.New(log, port, router)
@@ -109,7 +116,12 @@ func (a *App) Start() {
 // Stop останавливает приложение.
 func (a *App) Stop() {
 	if a != nil && a.service != nil {
-		a.service.Close()
+		err := a.service.Close()
+		if err != nil {
+			fmt.Println("An error occurred closing service" + err.Error())
+
+			return
+		}
 	}
 }
 

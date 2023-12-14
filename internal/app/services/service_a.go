@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"karma8/internal/app/health"
 	"karma8/internal/app/processes"
 	"karma8/internal/app/repository"
 	trccontext "karma8/internal/lib/context"
@@ -20,6 +21,9 @@ type ServiceA struct {
 	log     *slog.Logger
 	storage *repository.Storage
 	buckets []*Bucket
+
+	health.LivenessChecker
+	health.ReadinessChecker
 
 	mu sync.Mutex
 }
@@ -306,4 +310,18 @@ func (s *ServiceA) ClearCacheAll() error {
 	s.runClearCache(maxDateTime)
 
 	return nil
+}
+
+func (s *ServiceA) LivenessCheck() bool {
+	// Implement liveness check logic
+	return true
+}
+
+func (s *ServiceA) ReadinessCheck() bool {
+	// Implement readiness check logic
+	return s.Ping(context.Background())
+}
+
+func (s *ServiceA) Ping(ctx context.Context) bool {
+	return s.storage.GetDB().PingContext(ctx) == nil
 }

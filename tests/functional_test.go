@@ -73,8 +73,19 @@ not your IP address,HN,Benin,Fredyshire,-70.41275040993187,60.19866111663936,204
 		go applicationB[i].Start()
 	}
 
-	// Сохраним файл на сервер.
 	baseURL := fmt.Sprintf("http://localhost:%d", httpPort)
+
+	// Проверим, что сервис запущен и доступен.
+	response, err := http.Get(baseURL + "/live")
+	assert.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	response, err = http.Get(baseURL + "/ready")
+	assert.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+
+	// Сохраним файл на сервер.
 	url := baseURL + "/api/file"
 
 	// Создаем буфер для записи данных формы.
@@ -98,7 +109,7 @@ not your IP address,HN,Benin,Fredyshire,-70.41275040993187,60.19866111663936,204
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 
 	// Отправляем запрос
-	response, err := http.DefaultClient.Do(request)
+	response, err = http.DefaultClient.Do(request)
 	require.NoError(t, err)
 	defer func() {
 		if response != nil {

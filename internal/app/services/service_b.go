@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"karma8/internal/app/health"
 	"karma8/internal/app/repository"
 	trccontext "karma8/internal/lib/context"
 	"karma8/internal/models"
@@ -15,6 +16,10 @@ import (
 type ServiceB struct {
 	log     *slog.Logger
 	storage *repository.StorageRedis
+
+	health.LivenessChecker
+	health.ReadinessChecker
+
 	buckets []*Bucket
 }
 
@@ -131,4 +136,18 @@ func (s *ServiceB) Close() error {
 
 func (s *ServiceB) ClearCacheAll() error {
 	return nil
+}
+
+func (s *ServiceB) LivenessCheck() bool {
+	// Implement liveness check logic
+	return true
+}
+
+func (s *ServiceB) ReadinessCheck() bool {
+	// Implement readiness check logic
+	return s.Ping(context.Background())
+}
+
+func (s *ServiceB) Ping(ctx context.Context) bool {
+	return s.storage.GetDB().Ping(ctx) == nil
 }
