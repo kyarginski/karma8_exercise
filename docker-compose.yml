@@ -4,6 +4,26 @@ networks:
   karma8-net:
 
 services:
+  karma8-jaeger:
+    image: jaegertracing/all-in-one:1.51
+    container_name: karma8-jaeger
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - karma8-net
+    ports:
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "9411:9411"
+
   karma8-postgres:
     build:
       context: ./deploy
@@ -47,6 +67,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - karma8-postgres
+      - karma8-jaeger
     environment:
       - SERVICE_A_CONFIG_PATH=config/service_a/prod.yaml
     volumes:
@@ -65,6 +86,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - karma8-redis
+      - karma8-jaeger
     environment:
       - SERVICE_B_REDIS_DB=1
       - SERVICE_B_PORT=8261
@@ -83,6 +105,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - karma8-redis
+      - karma8-jaeger
     environment:
       - SERVICE_B_REDIS_DB=2
       - SERVICE_B_PORT=8262
@@ -101,6 +124,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - karma8-redis
+      - karma8-jaeger
     environment:
       - SERVICE_B_REDIS_DB=3
       - SERVICE_B_PORT=8263
@@ -119,6 +143,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - karma8-redis
+      - karma8-jaeger
     environment:
       - SERVICE_B_REDIS_DB=4
       - SERVICE_B_PORT=8264
@@ -137,6 +162,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - karma8-redis
+      - karma8-jaeger
     environment:
       - SERVICE_B_REDIS_DB=5
       - SERVICE_B_PORT=8265
@@ -155,6 +181,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - karma8-redis
+      - karma8-jaeger
     environment:
       - SERVICE_B_REDIS_DB=6
       - SERVICE_B_PORT=8266

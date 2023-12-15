@@ -28,6 +28,8 @@ type ServiceA struct {
 	mu sync.Mutex
 }
 
+var _ IService = (*ServiceA)(nil)
+
 var (
 	maxDateTime = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 )
@@ -324,4 +326,8 @@ func (s *ServiceA) ReadinessCheck() bool {
 
 func (s *ServiceA) Ping(ctx context.Context) bool {
 	return s.storage.GetDB().PingContext(ctx) == nil
+}
+
+func (s *ServiceA) Logger() *slog.Logger {
+	return s.log
 }

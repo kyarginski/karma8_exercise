@@ -23,6 +23,8 @@ type ServiceB struct {
 	buckets []*Bucket
 }
 
+var _ IService = (*ServiceB)(nil)
+
 func NewServiceB(log *slog.Logger, connectString string, redisDB int) (*ServiceB, error) {
 	const op = "serviceB.NewServiceB"
 
@@ -150,4 +152,8 @@ func (s *ServiceB) ReadinessCheck() bool {
 
 func (s *ServiceB) Ping(ctx context.Context) bool {
 	return s.storage.GetDB().Ping(ctx) == nil
+}
+
+func (s *ServiceB) Logger() *slog.Logger {
+	return s.log
 }

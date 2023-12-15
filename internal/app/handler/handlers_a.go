@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 
 	"karma8/internal/app/processes"
 	"karma8/internal/app/services"
 	trccontext "karma8/internal/lib/context"
+	"karma8/internal/lib/logger/sl"
 	"karma8/internal/models"
 
 	"github.com/google/uuid"
@@ -49,6 +51,7 @@ func GetFileItem(service services.IService) http.HandlerFunc {
 
 		parsedUUID, err := uuid.Parse(id)
 		if err != nil {
+			service.Logger().Error("error in GetFileItem uuid.Parse: ", sl.Err(err))
 			http.Error(w, "Error parsing UUID", http.StatusBadRequest)
 
 			return
@@ -56,6 +59,7 @@ func GetFileItem(service services.IService) http.HandlerFunc {
 
 		data, err := service.GetFileItem(ctx, parsedUUID)
 		if err != nil {
+			service.Logger().Error("error in GetFileItem service.GetFileItem: ", sl.Err(err))
 			http.Error(w, "error in GetFileItem: "+err.Error(), http.StatusInternalServerError)
 			span.SetError(err)
 
@@ -98,7 +102,9 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 		// Парсинг формы с файлом
 		err := r.ParseMultipartForm(10 << 20) // TODO (в настройки) 10 MB максимальный размер файла.
 		if err != nil {
+			service.Logger().Error("error in PutFileItem ParseMultipartForm: ", sl.Err(err))
 			http.Error(w, "Unable to parse form", http.StatusBadRequest)
+
 			return
 		}
 
@@ -114,16 +120,27 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 		// Получение файла из формы.
 		file, handler, err := r.FormFile("file")
 		if err != nil {
+			service.Logger().Error("error in PutFileItem FormFile: ", sl.Err(err))
 			http.Error(w, "Failed to retrieve file from form", http.StatusBadRequest)
 			span.SetError(err)
 
 			return
 		}
-		defer file.Close()
+		defer func(file multipart.File) {
+			err := file.Close()
+			if err != nil {
+				service.Logger().Error("error in PutFileItem Close: ", sl.Err(err))
+				http.Error(w, "Failed to close file", http.StatusInternalServerError)
+				span.SetError(err)
+
+				return
+			}
+		}(file)
 
 		// Получение содержимого файла из формы.
 		fileContent, err := io.ReadAll(file)
 		if err != nil {
+			service.Logger().Error("error in PutFileItem ReadAll: ", sl.Err(err))
 			http.Error(w, "Failed to read file content", http.StatusInternalServerError)
 			span.SetError(err)
 
@@ -132,6 +149,7 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 		// Запись файла на диск.
 		_, err = processes.WriteFile(fileContent, handler.Filename)
 		if err != nil {
+			service.Logger().Error("error in PutFileItem WriteFile: ", sl.Err(err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			span.SetError(err)
 
@@ -159,6 +177,7 @@ func PutFileItem(service services.IService) http.HandlerFunc {
 		}
 		err = json.NewEncoder(w).Encode(result)
 		if err != nil {
+			service.Logger().Error("error in PutFileItem NewEncoder: ", sl.Err(err))
 			http.Error(w, "error in PutFileItem", http.StatusInternalServerError)
 			span.SetError(err)
 
