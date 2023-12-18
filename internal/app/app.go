@@ -18,6 +18,9 @@ import (
 type App struct {
 	HTTPServer *web.HTTPServer
 	service    services.IService
+
+	health.LivenessChecker
+	health.ReadinessChecker
 }
 
 // NewServiceA создает новый экземпляр сервиса A.
@@ -32,6 +35,7 @@ func NewServiceA(
 	const op = "app.NewServiceA"
 	ctx := context.Background()
 
+	app := &App{}
 	srv, err := services.NewServiceA(log, connectString)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -46,8 +50,8 @@ func NewServiceA(
 	router.Use(middleware.RequestID)
 	router.Use(telemetryMiddleware)
 
-	router.HandleFunc("/live", health.LivenessHandler(srv)).Methods("GET")
-	router.HandleFunc("/ready", health.ReadinessHandler(srv)).Methods("GET")
+	router.HandleFunc("/live", health.LivenessHandler(app)).Methods("GET")
+	router.HandleFunc("/ready", health.ReadinessHandler(app)).Methods("GET")
 
 	router.HandleFunc("/api/file/{id}", handler.GetFileItem(srv)).Methods("GET")
 	router.HandleFunc("/api/file", handler.PutFileItem(srv)).Methods("PUT")
@@ -59,10 +63,10 @@ func NewServiceA(
 	// Запуск фоновой задачи по очистке кэша.
 	go srv.ClearCache(3 * time.Minute) // TODO: Передавать значение из конфига.
 
-	return &App{
-		HTTPServer: server,
-		service:    srv,
-	}, nil
+	app.HTTPServer = server
+	app.service = srv
+
+	return app, nil
 }
 
 // NewServiceB создает новый экземпляр сервиса B.
@@ -78,6 +82,7 @@ func NewServiceB(
 	const op = "app.NewServiceB"
 	ctx := context.Background()
 
+	app := &App{}
 	srv, err := services.NewServiceB(log, connectString, redisDB)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -92,8 +97,8 @@ func NewServiceB(
 	router.Use(middleware.RequestID)
 	router.Use(telemetryMiddleware)
 
-	router.HandleFunc("/live", health.LivenessHandler(srv)).Methods("GET")
-	router.HandleFunc("/ready", health.ReadinessHandler(srv)).Methods("GET")
+	router.HandleFunc("/live", health.LivenessHandler(app)).Methods("GET")
+	router.HandleFunc("/ready", health.ReadinessHandler(app)).Methods("GET")
 
 	router.HandleFunc("/api/filepart/{id}", handler.GetBucketItem(srv)).Methods("GET")
 	router.HandleFunc("/api/filepart", handler.PutBucketItem(srv)).Methods("PUT")
@@ -102,10 +107,10 @@ func NewServiceB(
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &App{
-		HTTPServer: server,
-		service:    srv,
-	}, nil
+	app.HTTPServer = server
+	app.service = srv
+
+	return app, nil
 }
 
 // Start запускает приложение.
@@ -140,4 +145,12 @@ func addTelemetryMiddleware(ctx context.Context, useTracing bool, tracingAddress
 	}
 
 	return telemetryMiddleware, nil
+}
+
+func (a *App) LivenessCheck() bool {
+	return a.service.LivenessCheck()
+}
+
+func (a *App) ReadinessCheck() bool {
+	return a.service.ReadinessCheck()
 }
