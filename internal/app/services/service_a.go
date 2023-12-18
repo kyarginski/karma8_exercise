@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"karma8/internal/app/health"
 	"karma8/internal/app/processes"
 	"karma8/internal/app/repository"
 	trccontext "karma8/internal/lib/context"
@@ -22,19 +21,14 @@ type ServiceA struct {
 	storage *repository.Storage
 	buckets []*Bucket
 
-	health.LivenessChecker
-	health.ReadinessChecker
-
 	mu sync.Mutex
 }
-
-var _ IService = (*ServiceA)(nil)
 
 var (
 	maxDateTime = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 )
 
-func NewServiceA(log *slog.Logger, connectString string) (*ServiceA, error) {
+func NewServiceA(log *slog.Logger, connectString string) (IService, error) {
 	const op = "serviceA.NewServiceA"
 
 	storage, err := repository.New(connectString)

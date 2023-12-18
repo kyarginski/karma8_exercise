@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"karma8/internal/app/health"
 	"karma8/internal/app/repository"
@@ -23,9 +24,7 @@ type ServiceB struct {
 	buckets []*Bucket
 }
 
-var _ IService = (*ServiceB)(nil)
-
-func NewServiceB(log *slog.Logger, connectString string, redisDB int) (*ServiceB, error) {
+func NewServiceB(log *slog.Logger, connectString string, redisDB int) (IService, error) {
 	const op = "serviceB.NewServiceB"
 
 	storage, err := repository.NewRedis(connectString, redisDB)
@@ -134,6 +133,9 @@ func (s *ServiceB) GetBucketsIDs() []int64 {
 // Close закрывает соединение с БД.
 func (s *ServiceB) Close() error {
 	return s.storage.Close()
+}
+
+func (s *ServiceB) ClearCache(_ time.Duration) {
 }
 
 func (s *ServiceB) ClearCacheAll() error {
